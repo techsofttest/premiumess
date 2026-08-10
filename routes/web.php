@@ -22,3 +22,10 @@ Route::get('/storage-link', function () {
 
     return 'Storage linked successfully.';
 });
+
+Route::get('/clear-config', function () {
+    Artisan::call('optimize:clear');
+    Artisan::call('config:cache');
+
+    return 'Laravel cache cleared and configuration recached successfully.';
+});
