@@ -22,7 +22,12 @@ class StorefrontController extends Controller
 {
     private function assetUrl(?string $path): ?string
     {
-        return $path ? asset('storage/' . $path) : null;
+        if (!$path) return null;
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+        $cleanPath = ltrim(preg_replace('/^storage\//', '', $path), '/');
+        return asset('storage/' . $cleanPath);
     }
 
     private function variantPayload($variant): array
