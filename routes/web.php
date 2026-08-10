@@ -17,3 +17,8 @@ Route::post('/customer/logout', function (Request $request) {
 
 Route::post('/webhooks/stripe', [\App\Http\Controllers\Api\StripeWebhookController::class, 'handle']);
 
+Route::get('/storage-link', function () {
+    Artisan::call('storage:link');
+
+    return 'Storage linked successfully.';
+});
