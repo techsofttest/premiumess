@@ -522,16 +522,30 @@
                                 class="order-product-image"
                                 alt="{{ $item->product_name }}"
                             >
+                            @php
+                                $variantDisplay = $item->variant_details;
+                                if (!$variantDisplay && $item->variant) {
+                                    $v = $item->variant;
+                                    $variantDisplay = trim(($v->name ?? '') . ($v->size ? ' (' . $v->size . ($v->unit ? ' ' . $v->unit : '') . ')' : ''));
+                                    if (!$variantDisplay && $v->sku) {
+                                        $variantDisplay = 'SKU: ' . $v->sku;
+                                    }
+                                }
+                                if (!$variantDisplay && $item->product) {
+                                    $v = $item->product->variants->first();
+                                    if ($v) {
+                                        $variantDisplay = trim(($v->name ?? '') . ($v->size ? ' (' . $v->size . ($v->unit ? ' ' . $v->unit : '') . ')' : ''));
+                                    }
+                                }
+                            @endphp
                             <div class="order-product-details">
                                 <div class="order-product-name">
                                     {{ $item->product_name }}
                                 </div>
 
-                                @if ($item->variant_details)
-                                    <div class="order-product-variant">
-                                        {{ $item->variant_details }}
-                                    </div>
-                                @endif
+                                <div class="order-product-variant" style="font-weight: 600; color: #D4AF37; margin-top: 2px;">
+                                    Variant / Size: {{ $variantDisplay ?: 'Standard Edition' }}
+                                </div>
                             </div>
 
                             <div style="align-self: center; margin-right: 1.5rem;">

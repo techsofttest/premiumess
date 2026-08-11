@@ -253,7 +253,14 @@ class CheckoutController extends Controller
                 }
 
                 if ($variant) {
-                    $variantDetails = $variant->name ?? $variant->sku ?? null;
+                    $sizeStr = $variant->size ? trim($variant->size . ($variant->unit ? ' ' . $variant->unit : '')) : '';
+                    $variantDetails = trim(($variant->name ?? '') . ($sizeStr ? ($variant->name ? ' - ' : '') . $sizeStr : ''));
+                    if (!$variantDetails && $variant->sku) {
+                        $variantDetails = 'SKU: ' . $variant->sku;
+                    }
+                }
+                if (!$variantDetails && !empty($item['variant']) && is_string($item['variant'])) {
+                    $variantDetails = $item['variant'];
                 }
 
                 $order->items()->create([
@@ -392,7 +399,7 @@ class CheckoutController extends Controller
         $orderNumber = trim($request->input('order_number'));
         $identifier = trim($request->input('email_or_phone'));
 
-        $order = Order::with(['items.product.brand'])
+        $order = Order::with(['items.product.brand', 'items.variant'])
             ->where(function ($q) use ($orderNumber) {
                 $q->where('order_number', $orderNumber)
                   ->orWhere('order_number', 'TC-' . str_pad($orderNumber, 6, '0', STR_PAD_LEFT))
@@ -491,7 +498,17 @@ class CheckoutController extends Controller
                 'name' => $item->product_name,
                 'price' => (float) $item->price,
                 'quantity' => (int) $item->quantity,
-                'variant_details' => $item->variant_details ?? '',
+                'variant_details' => (function() use ($item) {
+                    $vDetail = $item->variant_details;
+                    if (!$vDetail && $item->variant) {
+                        $v = $item->variant;
+                        $vDetail = trim(($v->name ?? '') . ($v->size ? ' (' . $v->size . ($v->unit ? ' ' . $v->unit : '') . ')' : ''));
+                        if (!$vDetail && $v->sku) {
+                            $vDetail = 'SKU: ' . $v->sku;
+                        }
+                    }
+                    return $vDetail ?: 'Standard Edition';
+                })(),
                 'line_total' => (float) $item->line_total,
                 'image' => $item->product && $item->product->featured_image ? asset('storage/' . $item->product->featured_image) : null,
                 'brand' => $item->product && $item->product->brand ? $item->product->brand->name : 'Premium Essence',

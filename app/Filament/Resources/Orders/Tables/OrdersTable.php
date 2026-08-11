@@ -35,17 +35,27 @@ class OrdersTable
                     ->sortable(),
 
                 TextColumn::make('items_summary')
-                    ->label('Products Ordered')
+                    ->label('Products & Variants Ordered')
                     ->state(function (Order $record): string {
                         return $record->items->map(function ($item) {
-                            $variantInfo = $item->variant_details ? " ({$item->variant_details})" : '';
+                            $vDetail = $item->variant_details;
+                            if (!$vDetail && $item->variant) {
+                                $v = $item->variant;
+                                $vDetail = trim(($v->name ?? '') . ($v->size ? ' (' . $v->size . ($v->unit ? ' ' . $v->unit : '') . ')' : ''));
+                            }
+                            $variantInfo = $vDetail ? " [{$vDetail}]" : '';
                             return "{$item->product_name}{$variantInfo} x{$item->quantity}";
                         })->implode(', ');
                     })
-                    ->limit(45)
+                    ->limit(60)
                     ->tooltip(function (Order $record): string {
                         return $record->items->map(function ($item) {
-                            $variantInfo = $item->variant_details ? " ({$item->variant_details})" : '';
+                            $vDetail = $item->variant_details;
+                            if (!$vDetail && $item->variant) {
+                                $v = $item->variant;
+                                $vDetail = trim(($v->name ?? '') . ($v->size ? ' (' . $v->size . ($v->unit ? ' ' . $v->unit : '') . ')' : ''));
+                            }
+                            $variantInfo = $vDetail ? " [{$vDetail}]" : '';
                             $price = number_format((float) $item->price, 2);
                             $lineTotal = number_format((float) $item->line_total, 2);
                             return "• {$item->product_name}{$variantInfo} x{$item->quantity} @ {$price} AED = {$lineTotal} AED";

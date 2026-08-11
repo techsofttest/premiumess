@@ -116,7 +116,7 @@ class CustomerDashboardController extends Controller
             return response()->json(['error' => 'Unauthenticated'], 401);
         }
 
-        $order = Order::with(['items.product.brand'])->where('customer_id', $user->id)->find($id);
+        $order = Order::with(['items.product.brand', 'items.variant'])->where('customer_id', $user->id)->find($id);
 
         if (!$order) {
             return response()->json(['error' => 'Order not found'], 404);
@@ -156,7 +156,8 @@ class CustomerDashboardController extends Controller
                 'name' => $item->product_name,
                 'price' => (float)$item->price,
                 'quantity' => $item->quantity,
-                'weight' => $item->variant_details ?? '',
+                'variant_details' => $this->resolveVariantDetails($item),
+                'weight' => $this->resolveVariantDetails($item),
                 'image' => $item->product && $item->product->featured_image ? asset('storage/' . $item->product->featured_image) : null,
                 'brand' => $item->product && $item->product->brand ? $item->product->brand->name : 'General',
             ])
@@ -171,7 +172,7 @@ class CustomerDashboardController extends Controller
         }
 
         $query = Order::query()
-            ->with(['items.product.brand'])
+            ->with(['items.product.brand', 'items.variant'])
             ->where('customer_id', $user->id);
 
         if ($paymentStatus = $request->string('payment_status')->toString()) {
@@ -204,7 +205,7 @@ class CustomerDashboardController extends Controller
                 'name' => $item->product_name,
                 'price' => (float) $item->price,
                 'quantity' => (int) $item->quantity,
-                'variant_details' => $item->variant_details ?? '',
+                'variant_details' => $this->resolveVariantDetails($item),
                 'line_total' => (float) $item->line_total,
                 'image' => $item->product && $item->product->featured_image ? asset('storage/' . $item->product->featured_image) : null,
                 'brand' => $item->product && $item->product->brand ? $item->product->brand->name : 'Premium Essence',

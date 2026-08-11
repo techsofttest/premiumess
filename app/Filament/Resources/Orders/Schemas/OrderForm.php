@@ -97,6 +97,33 @@ class OrderForm
                         ]),
                     ]),
 
+                Section::make('Purchased Items & Variants')
+                    ->schema([
+                        \Filament\Forms\Components\Repeater::make('items')
+                            ->relationship('items')
+                            ->schema([
+                                TextInput::make('product_name')->label('Product')->disabled(),
+                                TextInput::make('variant_details')
+                                    ->label('Variant / Size')
+                                    ->formatStateUsing(function ($state, $record) {
+                                        if (!empty($state)) return $state;
+                                        if ($record && $record->variant) {
+                                            $v = $record->variant;
+                                            return trim(($v->name ?? '') . ($v->size ? ' (' . $v->size . ($v->unit ? ' ' . $v->unit : '') . ')' : ''));
+                                        }
+                                        return 'Standard';
+                                    })
+                                    ->disabled(),
+                                TextInput::make('quantity')->label('Qty')->numeric()->disabled(),
+                                TextInput::make('price')->label('Unit Price (AED)')->numeric()->prefix('AED ')->disabled(),
+                                TextInput::make('line_total')->label('Line Total (AED)')->numeric()->prefix('AED ')->disabled(),
+                            ])
+                            ->columns(5)
+                            ->addable(false)
+                            ->deletable(false)
+                            ->reorderable(false),
+                    ]),
+
                 Section::make('Totals')
                     ->schema([
                         Grid::make(2)->schema([

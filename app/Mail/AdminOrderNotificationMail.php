@@ -15,7 +15,7 @@ class AdminOrderNotificationMail extends Mailable
 
     public function __construct(Order $order)
     {
-        $this->order = $order->loadMissing(['items.product.brand', 'customer']);
+        $this->order = $order->loadMissing(['items.product.brand', 'items.variant', 'customer']);
     }
 
     public function build()
@@ -38,7 +38,12 @@ class AdminOrderNotificationMail extends Mailable
         $itemsHtml = '';
         foreach ($order->items as $item) {
             $brandName = $item->product && $item->product->brand ? $item->product->brand->name : 'Premium Essence';
-            $variant = $item->variant_details ? " ({$item->variant_details})" : '';
+            $vDetail = $item->variant_details;
+            if (!$vDetail && $item->variant) {
+                $v = $item->variant;
+                $vDetail = trim(($v->name ?? '') . ($v->size ? ' (' . $v->size . ($v->unit ? ' ' . $v->unit : '') . ')' : ''));
+            }
+            $variant = $vDetail ? " <span style='color: #D4AF37; font-weight: bold;'>[{$vDetail}]</span>" : '';
             $unitPrice = number_format((float) $item->price, 2);
             $lineTotal = number_format((float) $item->line_total, 2);
 

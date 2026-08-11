@@ -15,7 +15,7 @@ class OrderInvoiceMail extends Mailable
 
     public function __construct(Order $order)
     {
-        $this->order = $order->loadMissing(['items.product.brand', 'customer']);
+        $this->order = $order->loadMissing(['items.product.brand', 'items.variant', 'customer']);
     }
 
     public function build()
@@ -35,7 +35,12 @@ class OrderInvoiceMail extends Mailable
         $itemsHtml = '';
         foreach ($order->items as $item) {
             $brandName = $item->product && $item->product->brand ? $item->product->brand->name : 'Premium Essence';
-            $variant = $item->variant_details ? " ({$item->variant_details})" : '';
+            $vDetail = $item->variant_details;
+            if (!$vDetail && $item->variant) {
+                $v = $item->variant;
+                $vDetail = trim(($v->name ?? '') . ($v->size ? ' (' . $v->size . ($v->unit ? ' ' . $v->unit : '') . ')' : ''));
+            }
+            $variant = $vDetail ? " <span style='color: #C5A059; font-weight: 600;'>[{$vDetail}]</span>" : '';
             $unitPrice = number_format((float) $item->price, 2);
             $lineTotal = number_format((float) $item->line_total, 2);
 
