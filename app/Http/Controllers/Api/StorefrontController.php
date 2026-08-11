@@ -581,30 +581,38 @@ class StorefrontController extends Controller
 
     public function products(Request $request): JsonResponse
     {
-        $perPage = (int) $request->integer('per_page', 12);
-        $perPage = max(1, min($perPage, 48));
-        $minProducts = max(18, $perPage);
+        $perPage = (int) $request->integer('per_page', 48);
+        $perPage = max(1, min($perPage, 250));
 
         $baseQuery = Product::query()
             ->with(['brand', 'category', 'variants', 'reviews', 'images'])
-            ->where('is_active', true)
-            ->whereHas('variants', fn ($q) => $q->where('stock', '>', 0));
+            ->where('is_active', true);
 
-        $categoryIds = null;
+        $query = clone $baseQuery;
 
-        if ($categorySlug = $request->string('category')->toString()) {
-            $category = Category::query()->where('slug', $categorySlug)->first();
-
-            if ($category) {
-                $categoryIds = $this->getCategoryIds($category);
+        if ($categoryParam = $request->string('category')->toString()) {
+            $categorySlugs = array_values(array_filter(array_map('trim', explode(',', $categoryParam))));
+            $categories = Category::query()->whereIn('slug', $categorySlugs)->get();
+            $allCategoryIds = [];
+            foreach ($categories as $cat) {
+                $allCategoryIds = array_merge($allCategoryIds, $this->getCategoryIds($cat));
+            }
+            if (!empty($allCategoryIds)) {
+                $query->whereIn('category_id', array_unique($allCategoryIds));
             }
         }
 
-        $query = (clone $baseQuery)
-            ->when($categoryIds, fn ($query) => $query->whereIn('category_id', $categoryIds));
-
-        if ($brandFilter = $request->string('brand')->toString()) {
-            $query->whereHas('brand', fn ($q) => $q->where('slug', $brandFilter)->orWhere('name', 'like', '%' . $brandFilter . '%'));
+        if ($brandParam = $request->string('brand')->toString()) {
+            $brandList = array_values(array_filter(array_map('trim', explode(',', $brandParam))));
+            $query->whereHas('brand', function ($q) use ($brandList) {
+                $q->whereIn('slug', $brandList)
+                  ->orWhereIn('id', array_filter($brandList, 'is_numeric'))
+                  ->orWhere(function ($sub) use ($brandList) {
+                      foreach ($brandList as $b) {
+                          $sub->orWhere('name', 'like', '%' . $b . '%');
+                      }
+                  });
+            });
         }
 
         if ($classificationFilter = $request->string('classification')->toString()) {
@@ -639,17 +647,29 @@ class StorefrontController extends Controller
             });
         }
 
-        if ($genderFilter = $request->string('gender')->toString()) {
-            $query->where('gender', 'like', '%' . $genderFilter . '%');
+        if ($genderParam = $request->string('gender')->toString()) {
+            $genderList = array_values(array_filter(array_map('trim', explode(',', $genderParam))));
+            $query->where(function ($q) use ($genderList) {
+                foreach ($genderList as $idx => $g) {
+                    if ($idx === 0) {
+                        $q->where('gender', 'like', '%' . $g . '%');
+                    } else {
+                        $q->orWhere('gender', 'like', '%' . $g . '%');
+                    }
+                }
+            });
         }
 
-        if ($concentrationFilter = ($request->string('concentration')->toString() ?: $request->string('concentration_id')->toString())) {
-            $query->where(function ($q) use ($concentrationFilter) {
-                if (is_numeric($concentrationFilter)) {
-                    $q->where('fragrance_concentration_id', $concentrationFilter);
-                } else {
-                    $q->whereHas('fragranceConcentration', fn ($cq) => $cq->where('slug', $concentrationFilter)->orWhere('name', 'like', '%' . $concentrationFilter . '%'));
-                }
+        if ($concentrationParam = ($request->string('concentration')->toString() ?: $request->string('concentration_id')->toString())) {
+            $concList = array_values(array_filter(array_map('trim', explode(',', $concentrationParam))));
+            $query->whereHas('fragranceConcentration', function ($cq) use ($concList) {
+                $cq->whereIn('slug', $concList)
+                   ->orWhereIn('id', array_filter($concList, 'is_numeric'))
+                   ->orWhere(function ($sub) use ($concList) {
+                       foreach ($concList as $c) {
+                           $sub->orWhere('name', 'like', '%' . $c . '%');
+                       }
+                   });
             });
         }
 
@@ -697,18 +717,6 @@ class StorefrontController extends Controller
             ->when($sort === 'latest' || ! in_array($sort, ['price_low', 'price_high', 'name_asc', 'name_desc', 'featured'], true), fn ($q) => $q->latest());
 
         $products = $query->get();
-
-        if ($products->count() < $minProducts && ! $request->has('brand') && ! $request->has('classification') && ! $request->has('search') && $categoryIds) {
-            $alreadyIncludedIds = $products->pluck('id')->all();
-
-            $fallbackProducts = (clone $baseQuery)
-                ->whereNotIn('id', $alreadyIncludedIds)
-                ->latest()
-                ->take($minProducts - $products->count())
-                ->get();
-
-            $products = $products->merge($fallbackProducts)->take($minProducts)->values();
-        }
 
         $page = (int) $request->integer('page', 1);
         $paginator = new LengthAwarePaginator(
