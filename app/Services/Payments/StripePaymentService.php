@@ -311,6 +311,7 @@ class StripePaymentService implements PaymentGatewayInterface
             }
         }
 
+        $order->sendPaymentConfirmationEmails();
         Log::info("Order {$order->order_number} successfully paid via Stripe.");
     }
 
@@ -443,6 +444,7 @@ class StripePaymentService implements PaymentGatewayInterface
         ]);
 
         $this->decrementVariantStock($order);
+        $order->sendPaymentConfirmationEmails();
 
         PaymentTransaction::create([
             'order_id' => $order->id,

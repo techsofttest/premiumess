@@ -60,5 +60,33 @@ class Order extends Model
     {
         return $this->belongsTo(User::class, 'assigned_by');
     }
+
+    public function sendPaymentConfirmationEmails(): void
+    {
+        try {
+            $metadata = (array) ($this->payment_metadata ?? []);
+            if (!empty($metadata['email_sent_at'])) {
+                return;
+            }
+
+            $order = $this->fresh(['items.product.brand', 'customer']);
+            if (!$order) return;
+
+            $recipientEmail = $order->customer_email ?: $order->email ?: $order->customer?->email;
+            if ($recipientEmail) {
+                \Illuminate\Support\Facades\Mail::to($recipientEmail)->send(new \App\Mail\OrderInvoiceMail($order));
+            }
+
+            $adminEmail = env('ADMIN_NOTIFICATION_EMAIL', 'sales@premium-perfumes.com');
+            if ($adminEmail) {
+                \Illuminate\Support\Facades\Mail::to($adminEmail)->send(new \App\Mail\AdminOrderNotificationMail($order));
+            }
+
+            $metadata['email_sent_at'] = now()->toIso8601String();
+            $order->update(['payment_metadata' => $metadata]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Failed sending payment confirmation emails for Order #{$this->order_number}: " . $e->getMessage());
+        }
+    }
 }
 

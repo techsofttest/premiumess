@@ -205,16 +205,19 @@ class StorefrontController extends Controller
 
     private function brandPayload(Brand $brand): array
     {
-        $firstProduct = $brand->products->first();
+        $firstProduct = $brand->products()->whereNotNull('featured_image')->first();
+        $logoUrl = $this->assetUrl($brand->logo);
 
         return [
             'id' => $brand->id,
             'name' => $brand->name,
             'slug' => $brand->slug,
             'classification' => $brand->classification,
-            'logo_url' => $this->assetUrl($brand->logo),
+            'logo' => $logoUrl,
+            'logo_url' => $logoUrl,
             'product_image_url' => $firstProduct ? $this->assetUrl($firstProduct->featured_image) : null,
             'link' => '/brand/' . $brand->slug,
+            'product_count' => $brand->products_count ?? $brand->products()->count(),
         ];
     }
 
@@ -476,15 +479,7 @@ class StorefrontController extends Controller
     {
         $brands = Brand::query()->withCount('products')->orderBy('name')->get();
 
-        $all = $brands->map(fn ($b) => [
-            'id' => $b->id,
-            'name' => $b->name,
-            'slug' => $b->slug,
-            'classification' => $b->classification,
-            'logo' => $this->assetUrl($b->logo),
-            'logo_url' => $this->assetUrl($b->logo),
-            'product_count' => $b->products_count,
-        ])->values();
+        $all = $brands->map(fn ($b) => $this->brandPayload($b))->values();
 
         $byClassification = [
             'Designer Houses' => $brands->where('classification', 'Designer Houses')->map(fn ($b) => $this->brandPayload($b))->values(),

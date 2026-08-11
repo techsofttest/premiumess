@@ -351,8 +351,11 @@ class CheckoutController extends Controller
         // Mark as viewed in session
         session()->put($sessionKey, true);
 
-        $isSuccess = $order->payment_status === 'paid';
-        $isFailed = $order->payment_status === 'failed';
+        $isSuccess = $order->payment_status === 'paid' || $order->payment_status === \App\Enums\PaymentStatus::PAID;
+        if ($isSuccess) {
+            $order->sendPaymentConfirmationEmails();
+        }
+        $isFailed = $order->payment_status === 'failed' || $order->payment_status === \App\Enums\PaymentStatus::FAILED;
         $isProcessing = $order->payment_status === 'processing';
 
         return response()->json([
