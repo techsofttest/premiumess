@@ -120,11 +120,12 @@ class ProductForm
 
                       
 
-                        Select::make('fragrance_family_id')
-                            ->relationship('fragranceFamily', 'name')
+                        Select::make('fragranceFamilies')
+                            ->relationship('fragranceFamilies', 'name')
+                            ->multiple()
                             ->searchable()
                             ->preload()
-                            ->label('Fragrance Family'),
+                            ->label('Fragrance Families (Multiple Allowed)'),
 
                         Select::make('fragrance_concentration_id')
                             ->relationship('fragranceConcentration', 'name')
@@ -239,6 +240,22 @@ class ProductForm
                         ->directory('products')
                         ->image()
                         ->preserveFilenames(),
+
+                    Repeater::make('images')
+                        ->label('Product Gallery Images (Multiple)')
+                        ->relationship('images')
+                        ->schema([
+                            FileUpload::make('image_path')
+                                ->label('Gallery Image')
+                                ->disk('public')
+                                ->directory('products')
+                                ->image()
+                                ->preserveFilenames(),
+                        ])
+                        ->columns(1)
+                        ->addActionLabel('Add Gallery Image')
+                        ->reorderable()
+                        ->collapsible(),
 
                 ])->columnSpanFull(),
 

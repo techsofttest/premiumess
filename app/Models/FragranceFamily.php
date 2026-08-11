@@ -24,6 +24,6 @@ class FragranceFamily extends Model
 
     public function products()
     {
-        return $this->hasMany(Product::class, 'fragrance_family_id');
+        return $this->belongsToMany(Product::class, 'fragrance_family_product');
     }
 }

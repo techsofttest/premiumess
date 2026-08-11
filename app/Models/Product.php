@@ -97,6 +97,11 @@ class Product extends Model
         return $this->belongsTo(FragranceFamily::class);
     }
 
+    public function fragranceFamilies()
+    {
+        return $this->belongsToMany(FragranceFamily::class, 'fragrance_family_product');
+    }
+
     public function fragranceConcentration()
     {
         return $this->belongsTo(FragranceConcentration::class);

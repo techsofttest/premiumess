@@ -64,6 +64,24 @@ class StorefrontController extends Controller
             return array_values(array_filter(array_map('trim', explode(',', $notes))));
         };
 
+        $families = $product->fragranceFamilies;
+        if ($families->isEmpty() && $product->fragranceFamily) {
+            $families = collect([$product->fragranceFamily]);
+        }
+        $familiesPayload = $families->map(fn ($f) => [
+            'id' => $f->id,
+            'name' => $f->name,
+            'slug' => $f->slug,
+        ])->values()->all();
+
+        $gallery = collect([$product->featured_image])
+            ->merge($product->images ? $product->images->pluck('image_path') : [])
+            ->filter()
+            ->unique()
+            ->map(fn ($imagePath) => $this->assetUrl($imagePath))
+            ->values()
+            ->all();
+
         return [
             'id' => $product->id,
             'slug' => $product->slug,
@@ -81,7 +99,19 @@ class StorefrontController extends Controller
                 'slug' => $product->category->slug,
             ] : null,
             'featured_image' => $this->assetUrl($product->featured_image),
-            'gallery' => $product->images->map(fn ($image) => $this->assetUrl($image->image_path))->values(),
+            'gallery' => $gallery,
+            'gender' => $product->gender,
+            'fragrance_family' => $product->fragranceFamily ? [
+                'id' => $product->fragranceFamily->id,
+                'name' => $product->fragranceFamily->name,
+                'slug' => $product->fragranceFamily->slug,
+            ] : null,
+            'fragrance_families' => $familiesPayload,
+            'fragrance_concentration' => $product->fragranceConcentration ? [
+                'id' => $product->fragranceConcentration->id,
+                'name' => $product->fragranceConcentration->name,
+                'slug' => $product->fragranceConcentration->slug,
+            ] : null,
             'price' => $price,
             'buying_price' => $buyingPrice,
             'original_price' => $originalPrice,
@@ -586,12 +616,26 @@ class StorefrontController extends Controller
         }
 
         if ($familyFilter = ($request->string('family')->toString() ?: $request->string('family_id')->toString())) {
-            $query->where(function ($q) use ($familyFilter) {
-                if (is_numeric($familyFilter)) {
-                    $q->where('fragrance_family_id', $familyFilter);
-                } else {
-                    $q->whereHas('fragranceFamily', fn ($fq) => $fq->where('slug', $familyFilter)->orWhere('name', 'like', '%' . $familyFilter . '%'));
-                }
+            $familyList = array_values(array_filter(array_map('trim', explode(',', $familyFilter))));
+            $query->where(function ($q) use ($familyList) {
+                $q->whereHas('fragranceFamilies', function ($fq) use ($familyList) {
+                    $fq->whereIn('slug', $familyList)
+                       ->orWhereIn('id', array_filter($familyList, 'is_numeric'))
+                       ->orWhere(function ($sub) use ($familyList) {
+                           foreach ($familyList as $fam) {
+                               $sub->orWhere('name', 'like', '%' . $fam . '%');
+                           }
+                       });
+                })
+                ->orWhereHas('fragranceFamily', function ($fq) use ($familyList) {
+                    $fq->whereIn('slug', $familyList)
+                       ->orWhereIn('id', array_filter($familyList, 'is_numeric'))
+                       ->orWhere(function ($sub) use ($familyList) {
+                           foreach ($familyList as $fam) {
+                               $sub->orWhere('name', 'like', '%' . $fam . '%');
+                           }
+                       });
+                });
             });
         }
 
