@@ -108,6 +108,25 @@ class CustomerDashboardController extends Controller
         ]);
     }
 
+    private function resolveVariantDetails($item): string
+    {
+        $vDetail = $item->variant_details ?? null;
+        if (!$vDetail && isset($item->variant) && $item->variant) {
+            $v = $item->variant;
+            $vDetail = trim(($v->name ?? '') . ($v->size ? ' (' . $v->size . ($v->unit ? ' ' . $v->unit : '') . ')' : ''));
+            if (!$vDetail && !empty($v->sku)) {
+                $vDetail = 'SKU: ' . $v->sku;
+            }
+        }
+        if (!$vDetail && isset($item->product) && $item->product && $item->product->relationLoaded('variants')) {
+            $v = $item->product->variants->first();
+            if ($v) {
+                $vDetail = trim(($v->name ?? '') . ($v->size ? ' (' . $v->size . ($v->unit ? ' ' . $v->unit : '') . ')' : ''));
+            }
+        }
+        return (string) ($vDetail ?: 'Standard Edition');
+    }
+
     public function showOrder(Request $request, $id): JsonResponse
     {
         $user = $this->getAuthenticatedCustomer($request);
