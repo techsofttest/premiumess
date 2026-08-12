@@ -11,6 +11,8 @@ use App\Http\Controllers\Api\CustomerWishlistController;
 use App\Http\Controllers\Api\CustomerCartController;
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\Api\JournalController;
+
 Route::get('/login', function () {
     return response()->json(['message' => 'Unauthenticated.'], 401);
 })->name('login');
@@ -29,6 +31,9 @@ Route::get('/storefront/fragrance-filters', [StorefrontController::class, 'fragr
 Route::post('/storefront/cart/validate-stock', [StorefrontController::class, 'validateCartStock']);
 Route::post('/cart/validate-stock', [StorefrontController::class, 'validateCartStock']);
 Route::get('/storefront/faqs', [StorefrontController::class, 'faqs']);
+Route::get('/storefront/journals', [JournalController::class, 'index']);
+Route::get('/storefront/journals/{slug}', [JournalController::class, 'show']);
+Route::get('/storefront/cms/{slug}', [CmsController::class, 'show']);
 Route::get('/cms/{slug}', [CmsController::class, 'show']);
 
 Route::post('/delivery/check', [DeliveryEligibilityController::class, 'check']);

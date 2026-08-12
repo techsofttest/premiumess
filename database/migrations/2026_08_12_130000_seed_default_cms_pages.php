@@ -1,46 +1,16 @@
 <?php
 
-namespace Database\Seeders;
-
-use App\Models\Cms;
-use Illuminate\Database\Seeder;
+use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
-class CmsSeeder extends Seeder
+return new class extends Migration
 {
-    /**
-     * Run the database seeds.
-     */
-    public function run(): void
+    public function up(): void
     {
-        // Clear all existing rows from the cms table
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        Cms::truncate();
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-
-        $pages = [
+        $defaultPages = [
             [
-                'title' => 'About Us',
-                'slug' => 'about-us',
-                'meta_title' => 'About Us - Premium Essence Perfumes LLC',
-                'description' => 'Discover the story behind Premium Essence Perfumes LLC, Abu Dhabi’s premier haute perfumerie.',
-                'content' => '
-                    <h2>Haute Parfumerie from Abu Dhabi</h2>
-                    <p>Established in the heart of the United Arab Emirates at Musaffah M/9, Abu Dhabi, <strong>Premium Essence Perfumes LLC</strong> is dedicated to the ancient art and modern sophistication of fine fragrance creation.</p>
-                    
-                    <h3>Our Olfactory Heritage</h3>
-                    <p>We combine centuries-old Arabian perfumery traditions—celebrating Royal Oud, Damask Rose, Ambergris, and Saffron—with contemporary European formulation standards. Every perfume in our catalog is crafted from certified essential oils sourced directly from renowned perfume houses in Grasse, Florence, and the Middle East.</p>
-
-                    <h3>Commitment to Authenticity</h3>
-                    <p>We guarantee 100% genuine, authentic fragrances. Our products undergo rigorous batch testing, temperature-controlled storage, and quality inspection before reaching your hands.</p>
-
-                    <h3>Concierge Service & Experience</h3>
-                    <p>Located at PO Box 92282, Musaffah, M/9, Abu Dhabi, UAE, our master fragrance advisors provide personalized scent consultations, corporate gifting solutions, and express nationwide delivery.</p>
-                ',
-            ],
-            [
-                'title' => 'Terms & Conditions',
                 'slug' => 'terms-and-conditions',
+                'title' => 'Terms & Conditions',
                 'meta_title' => 'Terms & Conditions - Premium Essence Perfumes LLC',
                 'description' => 'Terms of service, sales policy, website use agreement, and legal conditions of Premium Essence Perfumes LLC.',
                 'content' => '
@@ -59,10 +29,12 @@ class CmsSeeder extends Seeder
                     <h2>5. Governing Law & Jurisdiction</h2>
                     <p>These terms shall be governed and interpreted in accordance with the federal laws of the United Arab Emirates and the local laws applicable in the Emirate of Abu Dhabi. Any dispute arising under these terms shall fall under the exclusive jurisdiction of Abu Dhabi courts.</p>
                 ',
+                'created_at' => now(),
+                'updated_at' => now(),
             ],
             [
-                'title' => 'Privacy Policy',
                 'slug' => 'privacy-policy',
+                'title' => 'Privacy Policy',
                 'meta_title' => 'Privacy Policy - Premium Essence Perfumes LLC',
                 'description' => 'Data privacy protection, personal data collection, cookies policy, and customer security guidelines of Premium Essence Perfumes LLC.',
                 'content' => '
@@ -81,10 +53,12 @@ class CmsSeeder extends Seeder
                     <h2>5. Contacting Our Data Privacy Officer</h2>
                     <p>If you wish to review, correct, or delete any personal information associated with your account, please contact our Privacy Team at <strong>sales@premium-perfumes.com</strong> or call us at <strong>+971 55 723 2010</strong>.</p>
                 ',
+                'created_at' => now(),
+                'updated_at' => now(),
             ],
             [
-                'title' => 'Refund & Return Policy',
                 'slug' => 'refund-and-return',
+                'title' => 'Refund & Return Policy',
                 'meta_title' => 'Refund & Return Policy - Premium Essence Perfumes LLC',
                 'description' => 'Returns policy, exchange process, damaged goods claim, and refund terms of Premium Essence Perfumes LLC.',
                 'content' => '
@@ -108,10 +82,12 @@ class CmsSeeder extends Seeder
                     <h2>5. Refund Process & Timelines</h2>
                     <p>Once your returned item is inspected at our Musaffah M/9 Abu Dhabi warehouse, refunds will be credited back to your original payment method within 5 to 7 business days.</p>
                 ',
+                'created_at' => now(),
+                'updated_at' => now(),
             ],
             [
-                'title' => 'Shipping Policy',
                 'slug' => 'shipping-policy',
+                'title' => 'Shipping & Delivery Policy',
                 'meta_title' => 'Shipping & Delivery Policy - Premium Essence Perfumes LLC',
                 'description' => 'Express delivery rates, courier schedules, direct driver fulfillment in Abu Dhabi & UAE nationwide shipping details.',
                 'content' => '
@@ -134,11 +110,21 @@ class CmsSeeder extends Seeder
                     <h2>5. Order Tracking</h2>
                     <p>You can track your package in real-time by visiting our <a href="/track-order">Order Tracking Page</a> using your Order Number and registered Email/Phone number.</p>
                 ',
-            ],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
         ];
 
-        foreach ($pages as $page) {
-            Cms::create($page);
+        foreach ($defaultPages as $page) {
+            DB::table('cms')->updateOrInsert(
+                ['slug' => $page['slug']],
+                $page
+            );
         }
     }
-}
+
+    public function down(): void
+    {
+        //
+    }
+};

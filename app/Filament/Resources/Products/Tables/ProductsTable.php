@@ -103,58 +103,58 @@ class ProductsTable
                 EditAction::make(),
             ])
 
-            ->headerActions([
-                \Filament\Actions\Action::make('import_products')
-                    ->label('Import Products')
-                    ->icon('heroicon-o-arrow-up-tray')
-                    ->form([
-                        \Filament\Forms\Components\FileUpload::make('file')
-                            ->label('Excel / CSV File')
-                            ->required()
-                            ->disk('local')
-                            ->directory('imports'),
-                        \Filament\Forms\Components\FileUpload::make('zip')
-                            ->label('Images ZIP (Optional)')
-                            ->acceptedFileTypes(['application/zip', 'application/x-zip-compressed', 'multipart/x-zip'])
-                            ->disk('local')
-                            ->directory('imports'),
-                    ])
-                    ->action(function (array $data) {
-                        $filePath = \Illuminate\Support\Facades\Storage::disk('local')->path($data['file']);
-                        $imageService = null;
+            // ->headerActions([
+            //     \Filament\Actions\Action::make('import_products')
+            //         ->label('Import Products')
+            //         ->icon('heroicon-o-arrow-up-tray')
+            //         ->form([
+            //             \Filament\Forms\Components\FileUpload::make('file')
+            //                 ->label('Excel / CSV File')
+            //                 ->required()
+            //                 ->disk('local')
+            //                 ->directory('imports'),
+            //             \Filament\Forms\Components\FileUpload::make('zip')
+            //                 ->label('Images ZIP (Optional)')
+            //                 ->acceptedFileTypes(['application/zip', 'application/x-zip-compressed', 'multipart/x-zip'])
+            //                 ->disk('local')
+            //                 ->directory('imports'),
+            //         ])
+            //         ->action(function (array $data) {
+            //             $filePath = \Illuminate\Support\Facades\Storage::disk('local')->path($data['file']);
+            //             $imageService = null;
 
-                        try {
-                            if (!empty($data['zip'])) {
-                                $zipPath = \Illuminate\Support\Facades\Storage::disk('local')->path($data['zip']);
-                                $imageService = app(\App\Services\Import\ImageImportService::class);
-                                $lookup = $imageService->extractZip($zipPath);
-                                app(\App\Services\Import\ImageResolver::class)->setLookup($lookup);
-                            }
+            //             try {
+            //                 if (!empty($data['zip'])) {
+            //                     $zipPath = \Illuminate\Support\Facades\Storage::disk('local')->path($data['zip']);
+            //                     $imageService = app(\App\Services\Import\ImageImportService::class);
+            //                     $lookup = $imageService->extractZip($zipPath);
+            //                     app(\App\Services\Import\ImageResolver::class)->setLookup($lookup);
+            //                 }
 
-                            $import = new \App\Imports\ProductExcelImport();
-                            \Maatwebsite\Excel\Facades\Excel::import($import, $filePath);
+            //                 $import = new \App\Imports\ProductExcelImport();
+            //                 \Maatwebsite\Excel\Facades\Excel::import($import, $filePath);
 
-                            $summary = $import->getService()->getLogger()->getFormattedSummary();
+            //                 $summary = $import->getService()->getLogger()->getFormattedSummary();
 
-                            \Filament\Notifications\Notification::make()
-                                ->title('Import Completed')
-                                ->body($summary)
-                                ->success()
-                                ->send();
-                        } finally {
-                            if ($imageService) {
-                                $imageService->cleanup();
-                            }
-                            // Delete uploaded temp files
-                            if (\Illuminate\Support\Facades\Storage::disk('local')->exists($data['file'])) {
-                                \Illuminate\Support\Facades\Storage::disk('local')->delete($data['file']);
-                            }
-                            if (!empty($data['zip']) && \Illuminate\Support\Facades\Storage::disk('local')->exists($data['zip'])) {
-                                \Illuminate\Support\Facades\Storage::disk('local')->delete($data['zip']);
-                            }
-                        }
-                    })
-            ])
+            //                 \Filament\Notifications\Notification::make()
+            //                     ->title('Import Completed')
+            //                     ->body($summary)
+            //                     ->success()
+            //                     ->send();
+            //             } finally {
+            //                 if ($imageService) {
+            //                     $imageService->cleanup();
+            //                 }
+            //                 // Delete uploaded temp files
+            //                 if (\Illuminate\Support\Facades\Storage::disk('local')->exists($data['file'])) {
+            //                     \Illuminate\Support\Facades\Storage::disk('local')->delete($data['file']);
+            //                 }
+            //                 if (!empty($data['zip']) && \Illuminate\Support\Facades\Storage::disk('local')->exists($data['zip'])) {
+            //                     \Illuminate\Support\Facades\Storage::disk('local')->delete($data['zip']);
+            //                 }
+            //             }
+            //         })
+            // ])
 
             ->toolbarActions([
                 BulkActionGroup::make([
