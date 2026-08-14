@@ -110,21 +110,24 @@ class CustomerDashboardController extends Controller
 
     private function resolveVariantDetails($item): string
     {
+        $deal = \App\Models\CuratedDeal::where('name', $item->product_name)->first();
+        if ($deal && $deal->subtitle) {
+            return $deal->subtitle;
+        }
+
         $vDetail = $item->variant_details ?? null;
-        if (!$vDetail && isset($item->variant) && $item->variant) {
+        if (!empty($vDetail) && $vDetail !== 'null') {
+            return $vDetail;
+        }
+
+        if (isset($item->variant) && $item->variant) {
             $v = $item->variant;
             $vDetail = trim(($v->name ?? '') . ($v->size ? ' (' . $v->size . ($v->unit ? ' ' . $v->unit : '') . ')' : ''));
             if (!$vDetail && !empty($v->sku)) {
                 $vDetail = 'SKU: ' . $v->sku;
             }
         }
-        if (!$vDetail && isset($item->product) && $item->product && $item->product->relationLoaded('variants')) {
-            $v = $item->product->variants->first();
-            if ($v) {
-                $vDetail = trim(($v->name ?? '') . ($v->size ? ' (' . $v->size . ($v->unit ? ' ' . $v->unit : '') . ')' : ''));
-            }
-        }
-        return (string) ($vDetail ?: 'Standard Edition');
+        return (string) ($vDetail ?: 'Special Curation Bundle');
     }
 
     public function showOrder(Request $request, $id): JsonResponse
@@ -170,16 +173,26 @@ class CustomerDashboardController extends Controller
                 'suburb' => trim($order->city . ', ' . $order->state . ' ' . $order->pin_code),
                 'phone' => $order->phone,
             ],
-            'items' => $order->items->map(fn($item) => [
-                'id' => $item->id,
-                'name' => $item->product_name,
-                'price' => (float)$item->price,
-                'quantity' => $item->quantity,
-                'variant_details' => $this->resolveVariantDetails($item),
-                'weight' => $this->resolveVariantDetails($item),
-                'image' => $item->product && $item->product->featured_image ? asset('storage/' . $item->product->featured_image) : null,
-                'brand' => $item->product && $item->product->brand ? $item->product->brand->name : 'General',
-            ])
+            'items' => $order->items->map(function ($item) {
+                $deal = \App\Models\CuratedDeal::where('name', $item->product_name)->first();
+                $image = null;
+                if ($deal && $deal->image) {
+                    $image = str_starts_with($deal->image, 'http') ? $deal->image : asset($deal->image);
+                } elseif ($item->product && $item->product->featured_image) {
+                    $image = asset('storage/' . $item->product->featured_image);
+                }
+
+                return [
+                    'id' => $item->id,
+                    'name' => $item->product_name,
+                    'price' => (float)$item->price,
+                    'quantity' => $item->quantity,
+                    'variant_details' => $this->resolveVariantDetails($item),
+                    'weight' => $this->resolveVariantDetails($item),
+                    'image' => $image,
+                    'brand' => $deal ? 'Exclusive Curation' : ($item->product && $item->product->brand ? $item->product->brand->name : 'General'),
+                ];
+            })
         ]);
     }
 

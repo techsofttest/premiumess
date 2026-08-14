@@ -258,13 +258,41 @@ class CheckoutController extends Controller
                     ? (int) $productId
                     : $fallbackProductId;
 
-                $productName = $item['name'] ?? ($isDeal ? 'Curated Deal' : 'Product #' . $validProductId);
+                // 1. Determine Product Name cleanly
+                $productName = !empty($item['name']) ? trim($item['name']) : null;
+
+                if ($isDeal || $dealSlug || (is_string($cartKey) && str_starts_with($cartKey, 'deal-'))) {
+                    $slug = $dealSlug ?: (is_string($cartKey) ? str_replace('deal-', '', $cartKey) : '');
+                    $dealModel = \App\Models\CuratedDeal::where('slug', $slug)->first();
+                    if (!$dealModel && $productName) {
+                        $dealModel = \App\Models\CuratedDeal::where('name', $productName)->first();
+                    }
+
+                    if ($dealModel) {
+                        $productName = $dealModel->name;
+                        if (empty($item['size']) && empty($item['variant'])) {
+                            $item['size'] = $dealModel->subtitle ?: 'Special Curation Bundle';
+                        }
+                    } elseif (!$productName) {
+                        $productName = 'Curated Special Deal';
+                    }
+                } elseif (!$productName && is_numeric($productId)) {
+                    $product = \App\Models\Product::find($productId);
+                    if ($product) {
+                        $productName = $product->name;
+                    }
+                }
+
+                if (!$productName) {
+                    $productName = 'Product #' . $validProductId;
+                }
+
+                // 2. Determine Variant / Size Details
                 $variantDetails = $item['size'] ?? ($item['variant'] ?? null);
 
                 if (!$isDeal && !$dealSlug && is_numeric($productId)) {
                     $product = \App\Models\Product::find($productId);
                     if ($product) {
-                        $productName = $product->name;
                         if (is_string($variantId)) {
                             $variantId = trim($variantId);
                             if ($variantId === '' || strtolower($variantId) === 'null') {
@@ -287,9 +315,12 @@ class CheckoutController extends Controller
 
                         if ($variant) {
                             $sizeStr = $variant->size ? trim($variant->size . ($variant->unit ? ' ' . $variant->unit : '')) : '';
-                            $variantDetails = trim(($variant->name ?? '') . ($sizeStr ? ($variant->name ? ' - ' : '') . $sizeStr : ''));
-                            if (!$variantDetails && $variant->sku) {
-                                $variantDetails = 'SKU: ' . $variant->sku;
+                            $vStr = trim(($variant->name ?? '') . ($sizeStr ? ($variant->name ? ' - ' : '') . $sizeStr : ''));
+                            if (!$vStr && $variant->sku) {
+                                $vStr = 'SKU: ' . $variant->sku;
+                            }
+                            if ($vStr) {
+                                $variantDetails = $vStr;
                             }
                         }
                     }
