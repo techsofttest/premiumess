@@ -31,12 +31,12 @@ class CuratedDealsTable
 
                 TextColumn::make('price')
                     ->label('Price')
-                    ->money('USD')
+                    ->suffix(' AED')
                     ->sortable(),
 
                 TextColumn::make('original_price')
                     ->label('Original Price')
-                    ->money('USD')
+                    ->suffix(' AED')
                     ->sortable(),
 
                 TextColumn::make('badge')

@@ -29,7 +29,7 @@ class CuratedDealSeeder extends Seeder
                 ],
                 'features' => [
                     'Handcrafted 10ml atomizers with brass caps',
-                    'Includes $50 voucher toward full 100ml bottle',
+                    'Includes 200 AED voucher toward full 100ml bottle',
                     'Complimentary luxury gift box presentation',
                     'Worldwide express insured shipping',
                 ],

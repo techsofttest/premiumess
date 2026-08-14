@@ -61,15 +61,15 @@ class CuratedDealForm
                 ->schema([
                     Grid::make(4)->schema([
                         TextInput::make('price')
-                            ->label('Deal Selling Price ($)')
+                            ->label('Deal Selling Price (AED)')
                             ->numeric()
                             ->required()
-                            ->prefix('$'),
+                            ->suffix('AED'),
 
                         TextInput::make('original_price')
-                            ->label('Original Value ($)')
+                            ->label('Original Value (AED)')
                             ->numeric()
-                            ->prefix('$'),
+                            ->suffix('AED'),
 
                         TextInput::make('discount_percent')
                             ->label('Savings Discount (%)')
