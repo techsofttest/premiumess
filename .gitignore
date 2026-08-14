@@ -23,7 +23,6 @@
 
 /storage/app/public
 /storage/app/public/*
-/storage/app/public/**/
 /storage/app/public/products
 /storage/app/public/products/*
 /vendor
