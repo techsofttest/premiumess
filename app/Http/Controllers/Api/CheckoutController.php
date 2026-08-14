@@ -24,7 +24,6 @@ class CheckoutController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'cart' => 'required|array|min:1',
-            'cart.*.product_id' => 'required|exists:products,id',
             'cart.*.quantity' => 'required|integer|min:1',
             'cart.*.price' => 'required|numeric|min:0',
             'customer_id' => 'nullable|exists:customers,id',
@@ -123,15 +122,36 @@ class CheckoutController extends Controller
             $productId = $item['product_id'] ?? $item['productId'] ?? null;
             $variantId = $item['variant_id'] ?? $item['variantId'] ?? null;
             $qty = (int) ($item['quantity'] ?? 1);
+            $cartKey = $item['id'] ?? ($productId ? ($productId . '_' . $variantId) : null);
+            $dealSlug = $item['dealSlug'] ?? $item['deal_slug'] ?? null;
+            $isDeal = !empty($item['isDeal']) || (is_string($cartKey) && str_starts_with($cartKey, 'deal-')) || (is_string($productId) && str_starts_with($productId, 'deal-'));
+
+            if ($isDeal || $dealSlug) {
+                $slug = $dealSlug ?: (is_string($cartKey) ? str_replace('deal-', '', $cartKey) : (is_string($productId) ? str_replace('deal-', '', $productId) : ''));
+                $deal = \App\Models\CuratedDeal::where('slug', $slug)->first();
+                if (!$deal || !$deal->is_active) {
+                    $stockErrors[] = "'" . ($item['name'] ?? 'Curated Deal') . "' is no longer available.";
+                } else {
+                    $dealStock = (int) ($deal->stock ?? 100);
+                    if ($dealStock <= 0) {
+                        $stockErrors[] = "'" . $deal->name . "' is currently out of stock.";
+                    } elseif ($qty > $dealStock) {
+                        $stockErrors[] = "Only " . $dealStock . " unit(s) of '" . $deal->name . "' are available in stock (you requested " . $qty . ").";
+                    }
+                }
+                continue;
+            }
+
+            if (!$productId || !is_numeric($productId)) continue;
 
             $product = \App\Models\Product::find($productId);
             if (!$product || !$product->is_active) {
-                $stockErrors[] = "Product #" . $productId . " is no longer available.";
+                $stockErrors[] = "'" . ($item['name'] ?? "Product #{$productId}") . "' is no longer available.";
                 continue;
             }
 
             $variant = null;
-            if ($variantId) {
+            if ($variantId && is_numeric($variantId)) {
                 $variant = \App\Models\ProductVariant::find($variantId);
             }
             if (!$variant) {
@@ -224,53 +244,65 @@ class CheckoutController extends Controller
             ]);
 
             // Create order items
+            $fallbackProduct = \App\Models\Product::query()->where('is_active', true)->first();
+            $fallbackProductId = $fallbackProduct ? $fallbackProduct->id : 1;
+
             foreach ($request->input('cart') as $item) {
-                $product = \App\Models\Product::find($item['product_id']);
-
-                // Determine variant: prefer provided variant_id / variantId, otherwise pick a sensible fallback
+                $productId = $item['product_id'] ?? $item['productId'] ?? null;
                 $variantId = $item['variant_id'] ?? $item['variantId'] ?? null;
-                if (is_string($variantId)) {
-                    $variantId = trim($variantId);
-                    if ($variantId === '' || strtolower($variantId) === 'null') {
-                        $variantId = null;
+                $cartKey = $item['id'] ?? ($productId ? ($productId . '_' . $variantId) : null);
+                $dealSlug = $item['dealSlug'] ?? $item['deal_slug'] ?? null;
+                $isDeal = !empty($item['isDeal']) || (is_string($cartKey) && str_starts_with($cartKey, 'deal-')) || (is_string($productId) && str_starts_with($productId, 'deal-'));
+
+                $validProductId = (is_numeric($productId) && \App\Models\Product::where('id', $productId)->exists())
+                    ? (int) $productId
+                    : $fallbackProductId;
+
+                $productName = $item['name'] ?? ($isDeal ? 'Curated Deal' : 'Product #' . $validProductId);
+                $variantDetails = $item['size'] ?? ($item['variant'] ?? null);
+
+                if (!$isDeal && !$dealSlug && is_numeric($productId)) {
+                    $product = \App\Models\Product::find($productId);
+                    if ($product) {
+                        $productName = $product->name;
+                        if (is_string($variantId)) {
+                            $variantId = trim($variantId);
+                            if ($variantId === '' || strtolower($variantId) === 'null') {
+                                $variantId = null;
+                            }
+                        }
+
+                        $variant = null;
+                        if ($variantId !== null && is_numeric($variantId)) {
+                            $variant = \App\Models\ProductVariant::find($variantId);
+                        }
+
+                        if (!$variant) {
+                            $product->loadMissing('variants');
+                            $variant = $product->variants->first(fn($v) => (int) $v->stock > 0) ?? $product->variants->first();
+                            if ($variant) {
+                                $variantId = $variant->id;
+                            }
+                        }
+
+                        if ($variant) {
+                            $sizeStr = $variant->size ? trim($variant->size . ($variant->unit ? ' ' . $variant->unit : '')) : '';
+                            $variantDetails = trim(($variant->name ?? '') . ($sizeStr ? ($variant->name ? ' - ' : '') . $sizeStr : ''));
+                            if (!$variantDetails && $variant->sku) {
+                                $variantDetails = 'SKU: ' . $variant->sku;
+                            }
+                        }
                     }
-                }
-
-                $variantDetails = null;
-                $variant = null;
-
-                if ($variantId !== null) {
-                    $variant = \App\Models\ProductVariant::find($variantId);
-                }
-
-                if (!$variant && $product) {
-                    // Ensure variants are loaded and try to pick an in-stock variant first
-                    $product->loadMissing('variants');
-                    $variant = $product->variants->first(fn($v) => (int) $v->stock > 0) ?? $product->variants->first();
-                    if ($variant) {
-                        $variantId = $variant->id;
-                    }
-                }
-
-                if ($variant) {
-                    $sizeStr = $variant->size ? trim($variant->size . ($variant->unit ? ' ' . $variant->unit : '')) : '';
-                    $variantDetails = trim(($variant->name ?? '') . ($sizeStr ? ($variant->name ? ' - ' : '') . $sizeStr : ''));
-                    if (!$variantDetails && $variant->sku) {
-                        $variantDetails = 'SKU: ' . $variant->sku;
-                    }
-                }
-                if (!$variantDetails && !empty($item['variant']) && is_string($item['variant'])) {
-                    $variantDetails = $item['variant'];
                 }
 
                 $order->items()->create([
-                    'product_id' => $item['product_id'],
-                    'variant_id' => $variantId !== null ? $variantId : null,
-                    'product_name' => $product ? $product->name : 'Product #' . $item['product_id'],
+                    'product_id' => $validProductId,
+                    'variant_id' => (is_numeric($variantId) && $variantId !== null) ? (int) $variantId : null,
+                    'product_name' => $productName,
                     'variant_details' => $variantDetails,
-                    'quantity' => $item['quantity'],
-                    'price' => $item['price'],
-                    'line_total' => $item['price'] * $item['quantity'],
+                    'quantity' => (int) $item['quantity'],
+                    'price' => (float) $item['price'],
+                    'line_total' => (float) ($item['price'] * $item['quantity']),
                 ]);
             }
 

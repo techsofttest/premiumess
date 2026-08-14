@@ -433,14 +433,14 @@ class StorefrontController extends Controller
             'id' => $f->id,
             'name' => $f->name,
             'slug' => $f->slug,
-            'href' => '/category/fragrances?family=' . $f->slug,
+            'href' => '/fragrances?family=' . $f->slug,
         ])->values();
 
         $fragranceConcentrations = FragranceConcentration::query()->orderBy('name')->get()->map(fn ($c) => [
             'id' => $c->id,
             'name' => $c->name,
             'slug' => $c->slug,
-            'href' => '/category/fragrances?concentration=' . $c->slug,
+            'href' => '/fragrances?concentration=' . $c->slug,
         ])->values();
 
         return response()->json([
@@ -450,8 +450,8 @@ class StorefrontController extends Controller
             ],
             'links' => [
                 ['label' => 'Home', 'href' => '/'],
-                ['label' => 'Products', 'href' => '/products'],
-                ['label' => 'Categories', 'href' => '/categories'],
+                ['label' => 'Products', 'href' => '/shop'],
+                ['label' => 'Categories', 'href' => '/fragrances'],
             ],
             'categories' => $categories->map(fn (Category $category) => [
                 'id' => $category->id,
@@ -465,9 +465,9 @@ class StorefrontController extends Controller
             'all_brands' => $brands->map(fn ($b) => $this->brandPayload($b))->values(),
             'fragrance_menu' => [
                 'for_whom' => [
-                    ['name' => 'Men', 'slug' => 'men', 'href' => '/category/men'],
-                    ['name' => 'Women', 'slug' => 'women', 'href' => '/category/women'],
-                    ['name' => 'Unisex', 'slug' => 'unisex', 'href' => '/category/unisex'],
+                    ['name' => 'Men', 'slug' => 'men', 'href' => '/fragrances?gender=Men'],
+                    ['name' => 'Women', 'slug' => 'women', 'href' => '/fragrances?gender=Women'],
+                    ['name' => 'Unisex', 'slug' => 'unisex', 'href' => '/fragrances?gender=Unisex'],
                 ],
                 'olfactive_families' => $fragranceFamilies,
                 'concentrations' => $fragranceConcentrations,
@@ -646,10 +646,11 @@ class StorefrontController extends Controller
             $genderList = array_values(array_filter(array_map('trim', explode(',', $genderParam))));
             $query->where(function ($q) use ($genderList) {
                 foreach ($genderList as $idx => $g) {
+                    $gLower = strtolower($g);
                     if ($idx === 0) {
-                        $q->where('gender', 'like', '%' . $g . '%');
+                        $q->whereRaw('LOWER(gender) = ?', [$gLower]);
                     } else {
-                        $q->orWhere('gender', 'like', '%' . $g . '%');
+                        $q->orWhereRaw('LOWER(gender) = ?', [$gLower]);
                     }
                 }
             });
@@ -684,6 +685,33 @@ class StorefrontController extends Controller
             } elseif (in_array(strtolower($featuredFilter), ['0', 'false', 'no'], true)) {
                 $query->where('is_featured', false);
             }
+        }
+
+        $filterParam = strtolower($request->string('filter', $request->string('type')->toString())->toString());
+        $bestsellerParam = strtolower($request->string('bestseller', $request->string('is_bestseller')->toString())->toString());
+        $newParam = strtolower($request->string('new', $request->string('is_new', $request->string('new_arrivals')->toString())->toString())->toString());
+
+        if (
+            in_array($filterParam, ['bestseller', 'bestsellers', 'best-sellers', 'featured'], true) ||
+            in_array($bestsellerParam, ['1', 'true', 'yes'], true)
+        ) {
+            $query->where(function ($q) {
+                $q->where('is_featured', true);
+                if (\Illuminate\Support\Facades\Schema::hasColumn('products', 'is_bestseller')) {
+                    $q->orWhere('is_bestseller', true);
+                }
+                $q->orWhereHas('collections', fn ($cq) => $cq->whereIn('slug', ['best-sellers', 'bestsellers', 'best-choice']));
+            });
+        } elseif (
+            in_array($filterParam, ['new', 'new_arrivals', 'new-arrivals', 'latest'], true) ||
+            in_array($newParam, ['1', 'true', 'yes'], true)
+        ) {
+            $query->where(function ($q) {
+                if (\Illuminate\Support\Facades\Schema::hasColumn('products', 'is_new')) {
+                    $q->where('is_new', true);
+                }
+                $q->orWhereHas('collections', fn ($cq) => $cq->whereIn('slug', ['new-arrivals', 'newarrivals', 'special-deals']));
+            });
         }
 
         $sort = $request->string('sort', 'latest')->toString();
@@ -949,7 +977,55 @@ class StorefrontController extends Controller
             $productId = $item['product_id'] ?? $item['productId'] ?? null;
             $variantId = $item['variant_id'] ?? $item['variantId'] ?? null;
             $requestedQty = (int) ($item['quantity'] ?? 1);
-            $cartKey = $item['id'] ?? ($productId . '_' . $variantId);
+            $cartKey = $item['id'] ?? ($productId ? ($productId . '_' . $variantId) : null);
+            $dealSlug = $item['dealSlug'] ?? $item['deal_slug'] ?? null;
+            $isDeal = !empty($item['isDeal']) || (is_string($cartKey) && str_starts_with($cartKey, 'deal-')) || (is_string($productId) && str_starts_with($productId, 'deal-'));
+
+            if ($isDeal || $dealSlug) {
+                $slug = $dealSlug ?: (is_string($cartKey) ? str_replace('deal-', '', $cartKey) : (is_string($productId) ? str_replace('deal-', '', $productId) : ''));
+                $deal = \App\Models\CuratedDeal::where('slug', $slug)->first();
+                if (!$deal || !$deal->is_active) {
+                    $stockIssues[] = [
+                        'id' => $cartKey ?? $slug,
+                        'product_id' => $productId,
+                        'variant_id' => $variantId,
+                        'name' => $item['name'] ?? 'Curated Deal',
+                        'requested_quantity' => $requestedQty,
+                        'available_stock' => 0,
+                        'issue' => 'unavailable',
+                        'message' => "'" . ($item['name'] ?? 'Curated Deal') . "' is no longer available.",
+                    ];
+                } else {
+                    $dealStock = (int) ($deal->stock ?? 100);
+                    if ($dealStock <= 0) {
+                        $stockIssues[] = [
+                            'id' => $cartKey ?? $slug,
+                            'product_id' => $productId,
+                            'variant_id' => $variantId,
+                            'name' => $deal->name,
+                            'requested_quantity' => $requestedQty,
+                            'available_stock' => 0,
+                            'issue' => 'out_of_stock',
+                            'message' => "'{$deal->name}' is currently out of stock.",
+                        ];
+                    } elseif ($requestedQty > $dealStock) {
+                        $stockIssues[] = [
+                            'id' => $cartKey ?? $slug,
+                            'product_id' => $productId,
+                            'variant_id' => $variantId,
+                            'name' => $deal->name,
+                            'requested_quantity' => $requestedQty,
+                            'available_stock' => $dealStock,
+                            'issue' => 'insufficient_stock',
+                            'message' => "Only {$dealStock} unit(s) of '{$deal->name}' are available in stock (you requested {$requestedQty}).",
+                        ];
+                    }
+                    if ($cartKey) {
+                        $stockMap[$cartKey] = $dealStock;
+                    }
+                }
+                continue;
+            }
 
             if (!$productId) continue;
 
@@ -1015,6 +1091,59 @@ class StorefrontController extends Controller
             'valid' => count($stockIssues) === 0,
             'stock_issues' => $stockIssues,
             'stock_map' => $stockMap,
+        ]);
+    }
+
+    public function curatedDeals(): JsonResponse
+    {
+        $deals = \App\Models\CuratedDeal::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get()
+            ->map(fn (\App\Models\CuratedDeal $d) => [
+                'id' => $d->id,
+                'slug' => $d->slug,
+                'name' => $d->name,
+                'subtitle' => $d->subtitle,
+                'description' => $d->description,
+                'image' => $d->image ? $this->assetUrl($d->image) : null,
+                'price' => (float) $d->price,
+                'originalPrice' => (float) ($d->original_price ?? $d->price),
+                'discountPercent' => (int) ($d->discount_percent ?? 0),
+                'badge' => $d->badge,
+                'contents' => $d->contents ?: [],
+                'features' => $d->features ?: [],
+                'link' => "/deals/{$d->slug}",
+            ]);
+
+        return response()->json($deals);
+    }
+
+    public function curatedDeal(string $slug): JsonResponse
+    {
+        $d = \App\Models\CuratedDeal::query()
+            ->where('slug', $slug)
+            ->where('is_active', true)
+            ->first();
+
+        if (!$d) {
+            return response()->json(['message' => 'Deal not found'], 404);
+        }
+
+        return response()->json([
+            'id' => $d->id,
+            'slug' => $d->slug,
+            'name' => $d->name,
+            'subtitle' => $d->subtitle,
+            'description' => $d->description,
+            'image' => $d->image ? $this->assetUrl($d->image) : null,
+            'price' => (float) $d->price,
+            'originalPrice' => (float) ($d->original_price ?? $d->price),
+            'discountPercent' => (int) ($d->discount_percent ?? 0),
+            'badge' => $d->badge,
+            'contents' => $d->contents ?: [],
+            'features' => $d->features ?: [],
+            'link' => "/deals/{$d->slug}",
         ]);
     }
 }

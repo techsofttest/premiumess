@@ -31,6 +31,8 @@ Route::get('/storefront/fragrance-filters', [StorefrontController::class, 'fragr
 Route::post('/storefront/cart/validate-stock', [StorefrontController::class, 'validateCartStock']);
 Route::post('/cart/validate-stock', [StorefrontController::class, 'validateCartStock']);
 Route::get('/storefront/faqs', [StorefrontController::class, 'faqs']);
+Route::get('/storefront/curated-deals', [StorefrontController::class, 'curatedDeals']);
+Route::get('/storefront/curated-deals/{slug}', [StorefrontController::class, 'curatedDeal']);
 Route::get('/storefront/journals', [JournalController::class, 'index']);
 Route::get('/storefront/journals/{slug}', [JournalController::class, 'show']);
 Route::get('/storefront/cms/{slug}', [CmsController::class, 'show']);
