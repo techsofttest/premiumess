@@ -102,16 +102,20 @@ class OrderForm
                         \Filament\Forms\Components\Repeater::make('items')
                             ->relationship('items')
                             ->schema([
-                                TextInput::make('product_name')->label('Product')->disabled(),
+                                TextInput::make('product_name')->label('Product / Bundle Name')->disabled(),
                                 TextInput::make('variant_details')
-                                    ->label('Variant / Size')
+                                    ->label('Variant / Subtitle')
                                     ->formatStateUsing(function ($state, $record) {
                                         if (!empty($state)) return $state;
+                                        if ($record && $record->product_name) {
+                                            $deal = \App\Models\CuratedDeal::where('name', $record->product_name)->first();
+                                            if ($deal && $deal->subtitle) return $deal->subtitle;
+                                        }
                                         if ($record && $record->variant) {
                                             $v = $record->variant;
                                             return trim(($v->name ?? '') . ($v->size ? ' (' . $v->size . ($v->unit ? ' ' . $v->unit : '') . ')' : ''));
                                         }
-                                        return 'Standard';
+                                        return 'Standard Edition';
                                     })
                                     ->disabled(),
                                 TextInput::make('quantity')->label('Qty')->numeric()->disabled(),
@@ -127,11 +131,11 @@ class OrderForm
                 Section::make('Totals')
                     ->schema([
                         Grid::make(2)->schema([
-                            TextInput::make('subtotal')->numeric()->default(0.0)->disabled($isStaff),
-                            TextInput::make('shipping_cost')->numeric()->default(0.0)->prefix('$')->disabled($isStaff),
-                            TextInput::make('discount')->numeric()->default(0.0)->disabled($isStaff),
+                            TextInput::make('subtotal')->numeric()->default(0.0)->prefix('AED ')->disabled($isStaff),
+                            TextInput::make('shipping_cost')->numeric()->default(0.0)->prefix('AED ')->disabled($isStaff),
+                            TextInput::make('discount')->numeric()->default(0.0)->prefix('AED ')->disabled($isStaff),
                             TextInput::make('coupon_code')->disabled($isStaff),
-                            TextInput::make('grand_total')->numeric()->default(0.0)->disabled($isStaff),
+                            TextInput::make('grand_total')->numeric()->default(0.0)->prefix('AED ')->disabled($isStaff),
                         ]),
                         Textarea::make('notes')->columnSpanFull()->disabled($isStaff),
                     ]),

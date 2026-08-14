@@ -511,41 +511,52 @@
 
                 <div class="order-product-list">
                     @foreach ($this->record->items as $item)
+                        @php
+                            $deal = \App\Models\CuratedDeal::where('name', $item->product_name)->first();
+                            if ($deal && $deal->image) {
+                                $productImage = str_starts_with($deal->image, 'http') ? $deal->image : asset($deal->image);
+                            } elseif ($item->product && $item->product->featured_image) {
+                                $productImage = \Illuminate\Support\Facades\Storage::disk('public')->url($item->product->featured_image);
+                            } else {
+                                $productImage = asset('images/placeholder.png');
+                            }
+
+                            $variantDisplay = $item->variant_details;
+                            if ($deal) {
+                                $variantDisplay = $variantDisplay ?: ($deal->subtitle ?: 'Special Curation Bundle');
+                            } elseif (!$variantDisplay && $item->variant) {
+                                $v = $item->variant;
+                                $variantDisplay = trim(($v->name ?? '') . ($v->size ? ' (' . $v->size . ($v->unit ? ' ' . $v->unit : '') . ')' : ''));
+                                if (!$variantDisplay && $v->sku) {
+                                    $variantDisplay = 'SKU: ' . $v->sku;
+                                }
+                            }
+                        @endphp
                         <div class="order-product-item">
-                            @php
-                                $productImage = ($item->product && $item->product->featured_image)
-                                    ? \Illuminate\Support\Facades\Storage::disk('public')->url($item->product->featured_image)
-                                    : asset('images/placeholder.png');
-                            @endphp
                             <img
                                 src="{{ $productImage }}"
                                 class="order-product-image"
                                 alt="{{ $item->product_name }}"
                             >
-                            @php
-                                $variantDisplay = $item->variant_details;
-                                if (!$variantDisplay && $item->variant) {
-                                    $v = $item->variant;
-                                    $variantDisplay = trim(($v->name ?? '') . ($v->size ? ' (' . $v->size . ($v->unit ? ' ' . $v->unit : '') . ')' : ''));
-                                    if (!$variantDisplay && $v->sku) {
-                                        $variantDisplay = 'SKU: ' . $v->sku;
-                                    }
-                                }
-                                if (!$variantDisplay && $item->product) {
-                                    $v = $item->product->variants->first();
-                                    if ($v) {
-                                        $variantDisplay = trim(($v->name ?? '') . ($v->size ? ' (' . $v->size . ($v->unit ? ' ' . $v->unit : '') . ')' : ''));
-                                    }
-                                }
-                            @endphp
                             <div class="order-product-details">
-                                <div class="order-product-name">
-                                    {{ $item->product_name }}
+                                <div class="order-product-name" style="display: flex; align-items: center; gap: 8px;">
+                                    <span>{{ $item->product_name }}</span>
+                                    @if ($deal)
+                                        <span style="font-size: 10px; background: #C5A059; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase;">
+                                            Curated Bundle
+                                        </span>
+                                    @endif
                                 </div>
 
                                 <div class="order-product-variant" style="font-weight: 600; color: #D4AF37; margin-top: 2px;">
-                                    Variant / Size: {{ $variantDisplay ?: 'Standard Edition' }}
+                                    Variant / Subtitle: {{ $variantDisplay ?: 'Standard Edition' }}
                                 </div>
+
+                                @if ($deal && !empty($deal->contents))
+                                    <div style="font-size: 11px; color: #888; margin-top: 4px;">
+                                        <strong>Box Contents:</strong> {{ is_array($deal->contents) ? implode(', ', $deal->contents) : $deal->contents }}
+                                    </div>
+                                @endif
                             </div>
 
                             <div style="align-self: center; margin-right: 1.5rem;">
