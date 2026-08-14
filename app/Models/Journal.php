@@ -40,5 +40,5 @@ class Journal extends Model
                 $journal->published_at = now();
             }
         });
-    }
+    } 
 }
