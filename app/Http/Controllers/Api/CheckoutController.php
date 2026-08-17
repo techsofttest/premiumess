@@ -307,10 +307,6 @@ class CheckoutController extends Controller
                         $dealModel = \App\Models\CuratedDeal::where('name', $productName)->first();
                     }
 
-                    if (!$dealModel && is_numeric($productId)) {
-                        $dealModel = \App\Models\CuratedDeal::find($productId);
-                    }
-
                     if ($dealModel) {
                         $productName = $dealModel->name;
                         if (!$variantDetails) {
