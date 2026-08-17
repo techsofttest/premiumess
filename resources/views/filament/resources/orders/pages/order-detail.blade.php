@@ -512,7 +512,15 @@
                 <div class="order-product-list">
                     @foreach ($this->record->items as $item)
                         @php
-                            $deal = \App\Models\CuratedDeal::where('name', $item->product_name)->first();
+                            $deal = $item->getCuratedDeal() 
+                                ?? \App\Models\CuratedDeal::where('name', $item->product_name)->first()
+                                ?? ($item->product_id ? \App\Models\CuratedDeal::find($item->product_id) : null);
+
+                            $displayName = $item->product_name;
+                            if ((empty($item->variant_id) || str_starts_with($displayName, 'Product #')) && $deal) {
+                                $displayName = $deal->name;
+                            }
+
                             if ($deal && $deal->image) {
                                 $productImage = str_starts_with($deal->image, 'http') ? $deal->image : asset($deal->image);
                             } elseif ($item->product && $item->product->featured_image) {
@@ -536,11 +544,11 @@
                             <img
                                 src="{{ $productImage }}"
                                 class="order-product-image"
-                                alt="{{ $item->product_name }}"
+                                alt="{{ $displayName }}"
                             >
                             <div class="order-product-details">
                                 <div class="order-product-name" style="display: flex; align-items: center; gap: 8px;">
-                                    <span>{{ $item->product_name }}</span>
+                                    <span>{{ $displayName }}</span>
                                     @if ($deal)
                                         <span style="font-size: 10px; background: #C5A059; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase;">
                                             Curated Bundle

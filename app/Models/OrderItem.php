@@ -29,4 +29,23 @@ class OrderItem extends Model
     {
         return $this->belongsTo(ProductVariant::class, 'variant_id');
     }
+
+    public function getCuratedDeal(): ?CuratedDeal
+    {
+        if (!empty($this->variant_id)) {
+            return null;
+        }
+
+        if ($this->product_id) {
+            $deal = CuratedDeal::find($this->product_id);
+            if ($deal) return $deal;
+        }
+
+        if (!empty($this->product_name)) {
+            $deal = CuratedDeal::where('name', $this->product_name)->first();
+            if ($deal) return $deal;
+        }
+
+        return null;
+    }
 }
