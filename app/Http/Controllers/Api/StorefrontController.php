@@ -1146,4 +1146,49 @@ class StorefrontController extends Controller
             'link' => "/deals/{$d->slug}",
         ]);
     }
+
+    public function submitInquiry(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:50',
+            'email' => 'required|email|max:255',
+            'message' => 'required|string|max:2000',
+        ]);
+
+        $inquiry = \App\Models\Inquiry::create([
+            'name' => $validated['name'],
+            'phone' => $validated['phone'],
+            'email' => $validated['email'],
+            'message' => $validated['message'],
+            'status' => 'unread',
+        ]);
+
+        try {
+            \Illuminate\Support\Facades\Mail::to('sales@premium-perfumes.com')
+                ->send(new \App\Mail\InquiryNotificationMail($inquiry));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Inquiry email notification failed: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Thank you for reaching out. Our fragrance concierge team will contact you shortly.',
+            'inquiry_id' => $inquiry->id,
+        ]);
+    }
+
+    public function announcements(): JsonResponse
+    {
+        $announcements = Announcement::query()
+            ->orderBy('sort_order')
+            ->get()
+            ->map(fn (Announcement $announcement) => [
+                'id' => $announcement->id,
+                'text' => $announcement->text,
+                'sort_order' => $announcement->sort_order,
+            ])->values();
+
+        return response()->json($announcements);
+    }
 }

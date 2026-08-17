@@ -31,12 +31,14 @@ Route::get('/storefront/fragrance-filters', [StorefrontController::class, 'fragr
 Route::post('/storefront/cart/validate-stock', [StorefrontController::class, 'validateCartStock']);
 Route::post('/cart/validate-stock', [StorefrontController::class, 'validateCartStock']);
 Route::get('/storefront/faqs', [StorefrontController::class, 'faqs']);
+Route::get('/storefront/announcements', [StorefrontController::class, 'announcements']);
 Route::get('/storefront/curated-deals', [StorefrontController::class, 'curatedDeals']);
 Route::get('/storefront/curated-deals/{slug}', [StorefrontController::class, 'curatedDeal']);
 Route::get('/storefront/journals', [JournalController::class, 'index']);
 Route::get('/storefront/journals/{slug}', [JournalController::class, 'show']);
 Route::get('/storefront/cms/{slug}', [CmsController::class, 'show']);
 Route::get('/cms/{slug}', [CmsController::class, 'show']);
+Route::post('/storefront/contact', [StorefrontController::class, 'submitInquiry']);
 
 Route::post('/delivery/check', [DeliveryEligibilityController::class, 'check']);
 Route::post('/track-order', [CheckoutController::class, 'trackOrder']);
