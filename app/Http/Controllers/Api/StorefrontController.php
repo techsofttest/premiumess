@@ -1191,4 +1191,20 @@ class StorefrontController extends Controller
 
         return response()->json($announcements);
     }
+
+    public function banners(): JsonResponse
+    {
+        $banners = Banner::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get()
+            ->map(fn (Banner $banner) => [
+                'id' => $banner->id,
+                'name' => $banner->name,
+                'image_url' => $this->assetUrl($banner->image),
+                'url' => $banner->url,
+            ])->values();
+
+        return response()->json($banners);
+    }
 }
