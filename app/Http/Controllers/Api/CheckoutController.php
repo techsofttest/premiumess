@@ -124,9 +124,18 @@ class CheckoutController extends Controller
             $qty = (int) ($item['quantity'] ?? 1);
             $cartKey = $item['id'] ?? ($productId ? ($productId . '_' . $variantId) : null);
             $dealSlug = $item['dealSlug'] ?? $item['deal_slug'] ?? null;
-            $isDeal = !empty($item['isDeal']) || (is_string($cartKey) && str_starts_with($cartKey, 'deal-')) || (is_string($productId) && str_starts_with($productId, 'deal-'));
+            if ($dealSlug && is_numeric($dealSlug)) {
+                $dealSlug = null;
+            }
+            $dealId = $item['dealId'] ?? $item['deal_id'] ?? null;
 
-            if ($isDeal || $dealSlug) {
+            $isDeal = !empty($item['isDeal']) 
+                || (is_string($cartKey) && str_starts_with($cartKey, 'deal-')) 
+                || (is_string($productId) && str_starts_with($productId, 'deal-'))
+                || (!empty($dealSlug) && !is_numeric($dealSlug))
+                || !empty($dealId);
+
+            if ($isDeal) {
                 $slug = $dealSlug ?: (is_string($cartKey) ? str_replace('deal-', '', $cartKey) : (is_string($productId) ? str_replace('deal-', '', $productId) : ''));
                 $deal = \App\Models\CuratedDeal::where('slug', $slug)->first();
                 if (!$deal || !$deal->is_active) {
