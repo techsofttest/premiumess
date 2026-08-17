@@ -226,7 +226,7 @@ class CheckoutController extends Controller
                 'notes' => $deliveryDetails['delivery_notes'] ?? ($request->input('notes') ?? null),
 
                 // payment
-                'shipping_method' => $request->input('delivery_type') ?? ($this->deliveryEligibilityService->isDirectDeliveryPostcode($postcode) ? 'direct' : 'courier'),
+'shipping_method' => $request->input('delivery_type') ?? ($this->deliveryEligibilityService->isDirectDeliveryPostcode($postcode) ? 'direct' : 'courier'),
                 'payment_method' => $request->input('payment_method', 'card'),
                 'payment_status' => 'pending',
                 'status' => 'pending_payment',
@@ -250,28 +250,71 @@ class CheckoutController extends Controller
             foreach ($request->input('cart') as $item) {
                 $productId = $item['product_id'] ?? $item['productId'] ?? null;
                 $variantId = $item['variant_id'] ?? $item['variantId'] ?? null;
+                if (is_string($variantId)) {
+                    $variantId = trim($variantId);
+                    if ($variantId === '' || strtolower($variantId) === 'null') {
+                        $variantId = null;
+                    }
+                }
+
                 $cartKey = $item['id'] ?? ($productId ? ($productId . '_' . $variantId) : null);
                 $dealSlug = $item['dealSlug'] ?? $item['deal_slug'] ?? null;
-                $isDeal = !empty($item['isDeal']) || (is_string($cartKey) && str_starts_with($cartKey, 'deal-')) || (is_string($productId) && str_starts_with($productId, 'deal-'));
+                $dealId = $item['dealId'] ?? $item['deal_id'] ?? null;
+
+                $isDeal = !empty($item['isDeal']) 
+                    || (is_string($cartKey) && str_starts_with($cartKey, 'deal-')) 
+                    || (is_string($productId) && str_starts_with($productId, 'deal-'))
+                    || !empty($dealSlug)
+                    || !empty($dealId)
+                    || (empty($variantId) && $variantId === null);
 
                 $validProductId = (is_numeric($productId) && \App\Models\Product::where('id', $productId)->exists())
                     ? (int) $productId
                     : $fallbackProductId;
 
-                // 1. Determine Product Name cleanly
                 $productName = !empty($item['name']) ? trim($item['name']) : null;
+                $variantDetails = $item['size'] ?? ($item['variant'] ?? null);
 
-                if ($isDeal || $dealSlug || (is_string($cartKey) && str_starts_with($cartKey, 'deal-'))) {
-                    $slug = $dealSlug ?: (is_string($cartKey) ? str_replace('deal-', '', $cartKey) : '');
-                    $dealModel = \App\Models\CuratedDeal::where('slug', $slug)->first();
+                if ($isDeal || empty($variantId)) {
+                    // Search Curated Deals table for related deal product when variant_id is empty
+                    $dealModel = null;
+
+                    if ($dealId && is_numeric($dealId)) {
+                        $dealModel = \App\Models\CuratedDeal::find($dealId);
+                    }
+
+                    if (!$dealModel && $dealSlug) {
+                        $dealModel = \App\Models\CuratedDeal::where('slug', $dealSlug)->first();
+                    }
+
+                    if (!$dealModel && is_string($cartKey) && str_starts_with($cartKey, 'deal-')) {
+                        $slugFromKey = str_replace('deal-', '', $cartKey);
+                        $dealModel = \App\Models\CuratedDeal::where('slug', $slugFromKey)->first();
+                        if (!$dealModel && is_numeric($slugFromKey)) {
+                            $dealModel = \App\Models\CuratedDeal::find($slugFromKey);
+                        }
+                    }
+
+                    if (!$dealModel && is_string($productId) && str_starts_with($productId, 'deal-')) {
+                        $slugFromPid = str_replace('deal-', '', $productId);
+                        $dealModel = \App\Models\CuratedDeal::where('slug', $slugFromPid)->first();
+                        if (!$dealModel && is_numeric($slugFromPid)) {
+                            $dealModel = \App\Models\CuratedDeal::find($slugFromPid);
+                        }
+                    }
+
                     if (!$dealModel && $productName) {
                         $dealModel = \App\Models\CuratedDeal::where('name', $productName)->first();
                     }
 
+                    if (!$dealModel && is_numeric($productId)) {
+                        $dealModel = \App\Models\CuratedDeal::find($productId);
+                    }
+
                     if ($dealModel) {
                         $productName = $dealModel->name;
-                        if (empty($item['size']) && empty($item['variant'])) {
-                            $item['size'] = $dealModel->subtitle ?: 'Special Curation Bundle';
+                        if (!$variantDetails) {
+                            $variantDetails = $dealModel->subtitle ?: 'Exclusive Curation Bundle';
                         }
                     } elseif (!$productName) {
                         $productName = 'Curated Special Deal';
@@ -284,35 +327,15 @@ class CheckoutController extends Controller
                 }
 
                 if (!$productName) {
-                    $productName = 'Product #' . $validProductId;
+                    $productName = 'Curated Special Deal';
                 }
 
-                // 2. Determine Variant / Size Details
-                $variantDetails = $item['size'] ?? ($item['variant'] ?? null);
+                $finalVariantId = (is_numeric($variantId) && $variantId !== null) ? (int) $variantId : null;
 
-                if (!$isDeal && !$dealSlug && is_numeric($productId)) {
+                if (!$isDeal && $finalVariantId && is_numeric($productId)) {
                     $product = \App\Models\Product::find($productId);
                     if ($product) {
-                        if (is_string($variantId)) {
-                            $variantId = trim($variantId);
-                            if ($variantId === '' || strtolower($variantId) === 'null') {
-                                $variantId = null;
-                            }
-                        }
-
-                        $variant = null;
-                        if ($variantId !== null && is_numeric($variantId)) {
-                            $variant = \App\Models\ProductVariant::find($variantId);
-                        }
-
-                        if (!$variant) {
-                            $product->loadMissing('variants');
-                            $variant = $product->variants->first(fn($v) => (int) $v->stock > 0) ?? $product->variants->first();
-                            if ($variant) {
-                                $variantId = $variant->id;
-                            }
-                        }
-
+                        $variant = \App\Models\ProductVariant::find($finalVariantId);
                         if ($variant) {
                             $sizeStr = $variant->size ? trim($variant->size . ($variant->unit ? ' ' . $variant->unit : '')) : '';
                             $vStr = trim(($variant->name ?? '') . ($sizeStr ? ($variant->name ? ' - ' : '') . $sizeStr : ''));
@@ -328,9 +351,9 @@ class CheckoutController extends Controller
 
                 $order->items()->create([
                     'product_id' => $validProductId,
-                    'variant_id' => (is_numeric($variantId) && $variantId !== null) ? (int) $variantId : null,
+                    'variant_id' => $finalVariantId,
                     'product_name' => $productName,
-                    'variant_details' => $variantDetails,
+                    'variant_details' => $variantDetails ?: 'Standard Edition',
                     'quantity' => (int) $item['quantity'],
                     'price' => (float) $item['price'],
                     'line_total' => (float) ($item['price'] * $item['quantity']),
