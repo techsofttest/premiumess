@@ -522,11 +522,21 @@
                             }
 
                             if ($deal && $deal->image) {
-                                $productImage = str_starts_with($deal->image, 'http') ? $deal->image : asset($deal->image);
+                                if (str_starts_with($deal->image, 'http://') || str_starts_with($deal->image, 'https://')) {
+                                    $productImage = $deal->image;
+                                } else {
+                                    $cleanPath = ltrim(preg_replace('/^storage\//', '', $deal->image), '/');
+                                    $productImage = asset('storage/' . $cleanPath);
+                                }
                             } elseif ($item->product && $item->product->featured_image) {
-                                $productImage = \Illuminate\Support\Facades\Storage::disk('public')->url($item->product->featured_image);
+                                if (str_starts_with($item->product->featured_image, 'http://') || str_starts_with($item->product->featured_image, 'https://')) {
+                                    $productImage = $item->product->featured_image;
+                                } else {
+                                    $cleanPath = ltrim(preg_replace('/^storage\//', '', $item->product->featured_image), '/');
+                                    $productImage = asset('storage/' . $cleanPath);
+                                }
                             } else {
-                                $productImage = asset('images/placeholder.png');
+                                $productImage = asset('logo/logo-black2.png');
                             }
 
                             $variantDisplay = $item->variant_details;
@@ -545,6 +555,7 @@
                                 src="{{ $productImage }}"
                                 class="order-product-image"
                                 alt="{{ $displayName }}"
+                                onerror="this.src='{{ asset('logo/logo-black2.png') }}'; this.onerror=null;"
                             >
                             <div class="order-product-details">
                                 <div class="order-product-name" style="display: flex; align-items: center; gap: 8px;">

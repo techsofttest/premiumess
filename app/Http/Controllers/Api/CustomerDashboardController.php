@@ -130,6 +130,31 @@ class CustomerDashboardController extends Controller
         return (string) ($vDetail ?: 'Special Curation Bundle');
     }
 
+    private function resolveItemImage($item): ?string
+    {
+        $deal = $item->getCuratedDeal() 
+            ?? \App\Models\CuratedDeal::where('name', $item->product_name)->first()
+            ?? ($item->product_id ? \App\Models\CuratedDeal::find($item->product_id) : null);
+
+        if ($deal && $deal->image) {
+            if (str_starts_with($deal->image, 'http://') || str_starts_with($deal->image, 'https://')) {
+                return $deal->image;
+            }
+            $cleanPath = ltrim(preg_replace('/^storage\//', '', $deal->image), '/');
+            return asset('storage/' . $cleanPath);
+        }
+
+        if ($item->product && $item->product->featured_image) {
+            if (str_starts_with($item->product->featured_image, 'http://') || str_starts_with($item->product->featured_image, 'https://')) {
+                return $item->product->featured_image;
+            }
+            $cleanPath = ltrim(preg_replace('/^storage\//', '', $item->product->featured_image), '/');
+            return asset('storage/' . $cleanPath);
+        }
+
+        return asset('logo/logo-black.png');
+    }
+
     public function showOrder(Request $request, $id): JsonResponse
     {
         $user = $this->getAuthenticatedCustomer($request);
@@ -174,14 +199,7 @@ class CustomerDashboardController extends Controller
                 'phone' => $order->phone,
             ],
             'items' => $order->items->map(function ($item) {
-                $deal = \App\Models\CuratedDeal::where('name', $item->product_name)->first();
-                $image = null;
-                if ($deal && $deal->image) {
-                    $image = str_starts_with($deal->image, 'http') ? $deal->image : asset($deal->image);
-                } elseif ($item->product && $item->product->featured_image) {
-                    $image = asset('storage/' . $item->product->featured_image);
-                }
-
+                $deal = $item->getCuratedDeal() ?? \App\Models\CuratedDeal::where('name', $item->product_name)->first();
                 return [
                     'id' => $item->id,
                     'name' => $item->product_name,
@@ -189,7 +207,7 @@ class CustomerDashboardController extends Controller
                     'quantity' => $item->quantity,
                     'variant_details' => $this->resolveVariantDetails($item),
                     'weight' => $this->resolveVariantDetails($item),
-                    'image' => $image,
+                    'image' => $this->resolveItemImage($item),
                     'brand' => $deal ? 'Exclusive Curation' : ($item->product && $item->product->brand ? $item->product->brand->name : 'General'),
                 ];
             })
@@ -239,8 +257,8 @@ class CustomerDashboardController extends Controller
                 'quantity' => (int) $item->quantity,
                 'variant_details' => $this->resolveVariantDetails($item),
                 'line_total' => (float) $item->line_total,
-                'image' => $item->product && $item->product->featured_image ? asset('storage/' . $item->product->featured_image) : null,
-                'brand' => $item->product && $item->product->brand ? $item->product->brand->name : 'Premium Essence',
+                'image' => $this->resolveItemImage($item),
+                'brand' => ($item->getCuratedDeal() || \App\Models\CuratedDeal::where('name', $item->product_name)->exists()) ? 'Exclusive Curation' : ($item->product && $item->product->brand ? $item->product->brand->name : 'Premium Essence'),
             ]),
         ])->values());
     }
