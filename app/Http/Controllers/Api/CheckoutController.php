@@ -369,6 +369,9 @@ class CheckoutController extends Controller
             }
 
             if ($isCod) {
+                // Reduce stock for products and curated deals immediately upon COD order placement
+                $order->reduceInventoryStock();
+
                 // Create COD transaction record
                 \App\Models\PaymentTransaction::create([
                     'order_id' => $order->id,

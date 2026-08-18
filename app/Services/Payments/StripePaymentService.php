@@ -461,23 +461,6 @@ class StripePaymentService implements PaymentGatewayInterface
 
     private function decrementVariantStock(Order $order): void
     {
-        try {
-            foreach ($order->items as $item) {
-                if ($item->variant_id) {
-                    $variant = ProductVariant::find($item->variant_id);
-                    if ($variant) {
-                        $oldStock = $variant->stock;
-                        $variant->decrement('stock', $item->quantity);
-                        Log::info("Stock updated for variant {$item->variant_id}: reduced from {$oldStock} to {$variant->fresh()->stock} by quantity {$item->quantity}");
-                    } else {
-                        Log::warning("Variant {$item->variant_id} not found for order item {$item->id}");
-                    }
-                } else {
-                    Log::warning("Order item {$item->id} has no variant_id");
-                }
-            }
-        } catch (\Exception $e) {
-            Log::error("Error reducing inventory for order {$order->id}: " . $e->getMessage());
-        }
+        $order->reduceInventoryStock();
     }
 }
