@@ -12,4 +12,6 @@ enum TransactionType: string
     case PAYMENT_INTENT_PAYMENT_FAILED = 'payment_intent.payment_failed';
     case PAYMENT_INTENT_CANCELED = 'payment_intent.canceled';
     case CHARGE_REFUNDED = 'charge.refunded';
+    case CASH_ON_DELIVERY = 'cash_on_delivery';
+    case ADMIN_PAYMENT_UPDATE = 'admin_payment_update';
 }

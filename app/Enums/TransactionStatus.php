@@ -11,4 +11,6 @@ enum TransactionStatus: string
     case CANCELED = 'canceled';
     case REFUNDED = 'refunded';
     case PARTIALLY_REFUNDED = 'partially_refunded';
+    case PAID = 'paid';
+    case COMPLETED = 'completed';
 }

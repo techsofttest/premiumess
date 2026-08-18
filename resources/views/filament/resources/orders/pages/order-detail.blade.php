@@ -643,23 +643,63 @@
             {{-- PAYMENT --}}
             <div class="order-detail-card">
                 <div class="order-detail-card-header">
-                    <h2 class="order-detail-card-title">Payment</h2>
+                    <h2 class="order-detail-card-title">Payment Information</h2>
                 </div>
 
                 <div class="order-info-row">
-                    <span>Payment method</span>
-                    <span>{{ strtoupper($this->record->payment_method) }}</span>
+                    <span>Payment Method</span>
+                    <span style="font-weight: 700;">
+                        @if (in_array(strtolower($this->record->payment_method), ['cod', 'cash_on_delivery', 'cash']))
+                            <span style="color: #b45309; background: #fef3c7; padding: 2px 8px; border-radius: 4px; font-weight: 700; text-transform: uppercase; font-size: 11px;">
+                                Cash on Delivery (COD)
+                            </span>
+                        @else
+                            <span style="color: #047857; background: #d1fae5; padding: 2px 8px; border-radius: 4px; font-weight: 700; text-transform: uppercase; font-size: 11px;">
+                                Stripe Online Gateway
+                            </span>
+                        @endif
+                    </span>
                 </div>
 
                 <div class="order-info-row">
-                    <span>Status</span>
-                    <span>{{ ucfirst($this->record->payment_status->value) }}</span>
+                    <span>Payment Status</span>
+                    <span>
+                        @php
+                            $pStatus = is_object($this->record->payment_status) ? $this->record->payment_status->value : (string)$this->record->payment_status;
+                        @endphp
+                        <span style="font-weight: 700; text-transform: uppercase; font-size: 11px; padding: 2px 8px; border-radius: 4px; {{ $pStatus === 'paid' ? 'background:#dcfce7; color:#166534;' : 'background:#fef3c7; color:#92400e;' }}">
+                            {{ $pStatus }}
+                        </span>
+                    </span>
                 </div>
 
+                @if ($this->record->payment_reference || $this->record->stripe_payment_intent)
                 <div class="order-info-row">
-                    <span>Amount</span>
-                    <span>${{ number_format($this->record->grand_total, 2) }}</span>
+                    <span>Payment Reference / ID</span>
+                    <span style="font-family: monospace; font-size: 11px; font-weight: 600; color: #374151;">
+                        {{ $this->record->payment_reference ?: $this->record->stripe_payment_intent }}
+                    </span>
                 </div>
+                @endif
+
+                <div class="order-info-row">
+                    <span>Order Total</span>
+                    <span style="font-weight: 600;">AED {{ number_format((float)$this->record->grand_total, 2) }}</span>
+                </div>
+
+                @if ($this->record->payment_amount)
+                <div class="order-info-row">
+                    <span>Amount Collected</span>
+                    <span style="font-weight: 700; color: #166534;">AED {{ number_format((float)$this->record->payment_amount, 2) }}</span>
+                </div>
+                @endif
+
+                @if ($this->record->paid_at)
+                <div class="order-info-row">
+                    <span>Payment Date</span>
+                    <span style="font-size: 12px; color: #4b5563;">{{ $this->record->paid_at->format('d M Y, h:i A') }}</span>
+                </div>
+                @endif
             </div>
 
         </div>

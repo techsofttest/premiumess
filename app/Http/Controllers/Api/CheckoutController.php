@@ -192,6 +192,9 @@ class CheckoutController extends Controller
             ], 422);
         }
 
+        $rawPaymentMethod = strtolower((string) $request->input('payment_method', 'stripe'));
+        $isCod = in_array($rawPaymentMethod, ['cod', 'cash_on_delivery', 'cash']);
+
         DB::beginTransaction();
         try {
             $order = Order::create([
@@ -235,10 +238,10 @@ class CheckoutController extends Controller
                 'notes' => $deliveryDetails['delivery_notes'] ?? ($request->input('notes') ?? null),
 
                 // payment
-'shipping_method' => $request->input('delivery_type') ?? ($this->deliveryEligibilityService->isDirectDeliveryPostcode($postcode) ? 'direct' : 'courier'),
-                'payment_method' => $request->input('payment_method', 'card'),
+                'shipping_method' => $request->input('delivery_type') ?? ($this->deliveryEligibilityService->isDirectDeliveryPostcode($postcode) ? 'direct' : 'courier'),
+                'payment_method' => $isCod ? 'cod' : 'stripe',
                 'payment_status' => 'pending',
-                'status' => 'pending_payment',
+                'status' => $isCod ? 'confirmed' : 'pending_payment',
                 
                 // pricing totals
                 'subtotal' => $subtotal,
@@ -362,6 +365,43 @@ class CheckoutController extends Controller
                     'quantity' => (int) $item['quantity'],
                     'price' => (float) $item['price'],
                     'line_total' => (float) ($item['price'] * $item['quantity']),
+                ]);
+            }
+
+            if ($isCod) {
+                // Create COD transaction record
+                \App\Models\PaymentTransaction::create([
+                    'order_id' => $order->id,
+                    'gateway' => 'cod',
+                    'transaction_type' => 'cash_on_delivery',
+                    'payment_intent' => 'COD-' . $order->order_number,
+                    'status' => 'pending',
+                    'amount' => $order->grand_total,
+                    'currency' => 'AED',
+                ]);
+
+                // Clear DB cart if customer is logged in
+                if ($customerId) {
+                    \App\Models\CustomerCartItem::whereHas('cart', function ($q) use ($customerId) {
+                        $q->where('customer_id', $customerId);
+                    })->delete();
+                }
+
+                // Send email notifications
+                try {
+                    $order->sendPaymentConfirmationEmails();
+                } catch (\Throwable $e) {
+                    // Ignore email error during COD order creation
+                }
+
+                DB::commit();
+
+                return response()->json([
+                    'valid' => true,
+                    'order_id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'checkout_url' => null,
+                    'message' => 'Order placed successfully with Cash on Delivery.',
                 ]);
             }
 

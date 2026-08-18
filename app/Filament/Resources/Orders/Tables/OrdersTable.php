@@ -91,6 +91,13 @@ class OrdersTable
                     ->money('AED')
                     ->sortable(),
 
+                TextColumn::make('payment_method')
+                    ->label('Method')
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => in_array(strtolower((string) $state), ['cod', 'cash_on_delivery', 'cash']) ? 'COD' : 'Stripe')
+                    ->color(fn ($state) => in_array(strtolower((string) $state), ['cod', 'cash_on_delivery', 'cash']) ? 'warning' : 'success')
+                    ->sortable(),
+
                 TextColumn::make('payment_status')
                     ->label('Payment')
                     ->badge()

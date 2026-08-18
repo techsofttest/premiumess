@@ -12,7 +12,7 @@ class Order extends Model
         'order_number', 'user_id', 'customer_id', 'customer_name', 'customer_email', 'customer_phone',
         'first_name', 'last_name', 'email', 'phone',
         'country', 'address', 'apartment', 'city', 'state', 'pin_code', 'billing_details',
-        'shipping_method', 'payment_method', 'payment_status', 'status',
+        'shipping_method', 'payment_method', 'payment_status', 'payment_reference', 'status',
         'subtotal', 'shipping_cost', 'discount', 'coupon_code', 'grand_total', 'notes',
         'shipping_name', 'shipping_phone', 'shipping_address_line_1', 'shipping_address_line_2',
         'shipping_suburb', 'shipping_city', 'shipping_state', 'shipping_postcode', 'shipping_country',
