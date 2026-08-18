@@ -488,34 +488,45 @@ class CheckoutController extends Controller
         // Check if this is the first time viewing this status
         $sessionKey = "payment_status_viewed_{$order->id}";
         $hasViewed = session()->has($sessionKey);
-
-        // Mark as viewed in session
         session()->put($sessionKey, true);
 
-        $isSuccess = $order->payment_status === 'paid' || $order->payment_status === \App\Enums\PaymentStatus::PAID;
+        $paymentMethod = strtolower((string) ($order->payment_method ?? 'stripe'));
+        $isCod = in_array($paymentMethod, ['cod', 'cash_on_delivery', 'cash']);
+        $isPaid = $order->payment_status === 'paid' || $order->payment_status === \App\Enums\PaymentStatus::PAID;
+        $orderStatusStr = is_object($order->status) ? $order->status->value : (string) $order->status;
+        $isConfirmed = $isCod || in_array($orderStatusStr, ['confirmed', 'processing', 'packed', 'ready', 'out_for_delivery', 'delivered']);
+        $isSuccess = $isPaid || $isConfirmed;
+
         if ($isSuccess) {
             $order->sendPaymentConfirmationEmails();
         }
+
         $isFailed = $order->payment_status === 'failed' || $order->payment_status === \App\Enums\PaymentStatus::FAILED;
         $isProcessing = $order->payment_status === 'processing';
+
+        $message = $isCod
+            ? 'Your order has been placed and confirmed successfully! We are preparing your luxury fragrances with meticulous care. Payment will be collected in cash upon doorstep delivery.'
+            : ($isSuccess
+                ? 'Your payment was processed successfully! We are preparing your luxury fragrances with meticulous care.'
+                : ($isFailed
+                    ? 'Payment failed. Please try again or contact support.'
+                    : 'Payment is being processed. Please wait...'));
 
         return response()->json([
             'order_id' => $order->id,
             'order_number' => $order->order_number,
-            'payment_status' => $order->payment_status->value ?? $order->payment_status,
-            'status' => $order->status,
+            'payment_status' => $isCod ? 'Pending (COD)' : ($order->payment_status->value ?? $order->payment_status),
+            'payment_method' => $order->payment_method,
+            'is_cod' => $isCod,
+            'status' => $orderStatusStr,
             'is_success' => $isSuccess,
             'is_failed' => $isFailed,
             'is_processing' => $isProcessing,
             'is_first_view' => !$hasViewed,
-            'grand_total' => $order->grand_total,
+            'grand_total' => (float) $order->grand_total,
             'paid_at' => $order->paid_at,
             'payment_failure_reason' => $order->payment_failure_reason ?? null,
-            'message' => $isSuccess 
-                ? 'Payment successful! Your order has been confirmed.'
-                : ($isFailed 
-                    ? 'Payment failed. Please try again or contact support.'
-                    : 'Payment is being processed. Please wait...'),
+            'message' => $message,
         ]);
     }
 
