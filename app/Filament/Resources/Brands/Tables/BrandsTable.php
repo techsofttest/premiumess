@@ -20,8 +20,8 @@ class BrandsTable
                 TextColumn::make('classification')
                     ->searchable()
                     ->sortable(),
-                /*ImageColumn::make('logo')
-                    ->disk('public'),*/
+                ImageColumn::make('logo')
+                    ->disk('public'),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
