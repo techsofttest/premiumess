@@ -818,6 +818,9 @@ class StorefrontController extends Controller
 
         $banners = Banner::query()
             ->where('is_active', true)
+            ->where(function ($q) {
+                $q->where('position', 'hero')->orWhereNull('position');
+            })
             ->orderBy('sort_order')
             ->get()
             ->map(fn (Banner $banner) => [
@@ -825,6 +828,30 @@ class StorefrontController extends Controller
                 'name' => $banner->name,
                 'image_url' => $this->assetUrl($banner->image),
                 'url' => $banner->url,
+            ])->values();
+
+        $middleBannerObj = Banner::query()
+            ->where('is_active', true)
+            ->where('position', 'middle')
+            ->orderBy('sort_order')
+            ->first();
+
+        $middleBanner = $middleBannerObj ? [
+            'id' => $middleBannerObj->id,
+            'name' => $middleBannerObj->name,
+            'image_url' => $this->assetUrl($middleBannerObj->image),
+            'url' => $middleBannerObj->url ?: '/shop',
+        ] : null;
+
+        $whyChooseUs = \App\Models\WhyChooseUsItem::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get()
+            ->map(fn ($item) => [
+                'id' => $item->id,
+                'title' => $item->title,
+                'description' => $item->description,
+                'icon' => $item->icon,
             ])->values();
 
         $brands = Brand::query()
@@ -909,6 +936,8 @@ class StorefrontController extends Controller
                 'url' => $homeAdvertisement->url,
             ] : null,
             'banners' => $banners,
+            'middle_banner' => $middleBanner,
+            'why_choose_us' => $whyChooseUs,
             'collections' => $collections,
             'products' => $products->map(fn (Product $product) => $this->productPayload($product))->values(),
             'brands' => $brands,

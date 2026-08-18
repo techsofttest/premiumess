@@ -1,37 +1,36 @@
 <?php
 
-namespace App\Filament\Resources\Banners\Tables;
+namespace App\Filament\Resources\WhyChooseUs\Tables;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
 
-class BannersTable
+class WhyChooseUsTable
 {
     public static function configure(Table $table): Table
     {
         return $table
             ->defaultSort('sort_order', 'asc')
             ->columns([
-                TextColumn::make('name')
-                    ->searchable(),
-                TextColumn::make('position')
-                    ->label('Position')
-                    ->badge()
-                    ->formatStateUsing(fn ($state) => $state === 'middle' ? 'Middle Banner' : 'Top Hero Slider')
-                    ->color(fn ($state) => $state === 'middle' ? 'warning' : 'info')
+                TextColumn::make('title')
+                    ->label('Title')
+                    ->searchable()
                     ->sortable(),
-                ImageColumn::make('image')
-                    ->disk('public'),
+                TextColumn::make('description')
+                    ->label('Description')
+                    ->limit(50),
+                TextColumn::make('icon')
+                    ->label('Icon')
+                    ->badge(),
                 ToggleColumn::make('is_active')
                     ->label('Active'),
-            ])
-            ->filters([
-                //
+                TextColumn::make('sort_order')
+                    ->label('Sort Order')
+                    ->sortable(),
             ])
             ->recordActions([
                 EditAction::make(),

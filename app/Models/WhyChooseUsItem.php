@@ -4,15 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Banner extends Model
+class WhyChooseUsItem extends Model
 {
+    protected $table = 'why_choose_us_items';
+
     protected $fillable = [
-        'name',
-        'position',
-        'image',
-        'url',
-        'is_active',
+        'title',
+        'description',
+        'icon',
         'sort_order',
+        'is_active',
     ];
 
     protected $casts = [
