@@ -24,7 +24,7 @@ Route::get('/storefront/brands', [StorefrontController::class, 'brands']);
 Route::get('/storefront/products', [StorefrontController::class, 'products']);
 Route::get('/storefront/search', [StorefrontController::class, 'search']);
 Route::get('/storefront/products/{product:slug}', [StorefrontController::class, 'product']);
-Route::post('/storefront/products/{identifier}/reviews', [StorefrontController::class, 'submitReview']);
+Route::post('/storefront/products/{identifier}/reviews', [StorefrontController::class, 'submitReview'])->middleware('throttle:3,1');
 Route::get('/storefront/top-offers', [StorefrontController::class, 'topOffers']);
 Route::get('/storefront/testimonials', [StorefrontController::class, 'testimonials']);
 Route::get('/storefront/fragrance-filters', [StorefrontController::class, 'fragranceFilters']);
@@ -43,19 +43,22 @@ Route::post('/storefront/contact', [StorefrontController::class, 'submitInquiry'
 
 Route::post('/delivery/check', [DeliveryEligibilityController::class, 'check']);
 Route::post('/track-order', [CheckoutController::class, 'trackOrder']);
-Route::post('/coupons/validate', [CouponController::class, 'validate'])->middleware('web');
-Route::post('/checkout', [CheckoutController::class, 'create'])->middleware('web');
-Route::post('/checkout/retry', [CheckoutController::class, 'retry'])->middleware('web');
+Route::post('/coupons/validate', [CouponController::class, 'validate'])->middleware(['web', 'throttle:30,1']);
+Route::post('/checkout', [CheckoutController::class, 'create'])->middleware(['web', 'throttle:20,1']);
+Route::post('/checkout/retry', [CheckoutController::class, 'retry'])->middleware(['web', 'throttle:20,1']);
 Route::post('/checkout/payment-status', [CheckoutController::class, 'paymentStatus'])->middleware('web');
 Route::post('/webhooks/stripe', [\App\Http\Controllers\Api\StripeWebhookController::class, 'handle']);
 
 Route::middleware(['web'])->group(function () {
-    Route::post('/customer/login', [CustomerAddressController::class, 'login']);
-    Route::post('/customer/registration/request-otp', [CustomerAddressController::class, 'requestRegistrationOtp']);
-    Route::post('/customer/registration/verify-otp', [CustomerAddressController::class, 'verifyRegistrationOtp']);
-    Route::post('/customer/register', [CustomerAddressController::class, 'register']);
+    Route::post('/customer/login', [CustomerAddressController::class, 'login'])->middleware('throttle:10,1');
+    Route::post('/customer/registration/request-otp', [CustomerAddressController::class, 'requestRegistrationOtp'])->middleware('throttle:5,1');
+    Route::post('/customer/registration/verify-otp', [CustomerAddressController::class, 'verifyRegistrationOtp'])->middleware('throttle:10,1');
+    Route::post('/customer/register', [CustomerAddressController::class, 'register'])->middleware('throttle:10,1');
     
     Route::get('/customer/debug-session', function (\Illuminate\Http\Request $request) {
+        if (!app()->environment('local')) {
+            return response()->json(['error' => 'Not available in production'], 404);
+        }
         return response()->json([
             'session_id' => session()->getId(),
             'customer_id' => session()->get('customer_id'),

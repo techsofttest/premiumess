@@ -68,39 +68,49 @@ class Order extends Model
             return;
         }
 
-        $this->loadMissing(['items.product.variants']);
+        \Illuminate\Support\Facades\DB::transaction(function () {
+            $this->loadMissing(['items.product.variants']);
 
-        foreach ($this->items as $item) {
-            // 1. Check if Curated Deal
-            $deal = $item->getCuratedDeal();
+            foreach ($this->items as $item) {
+                // 1. Check if Curated Deal
+                $deal = $item->getCuratedDeal();
 
-            if ($deal) {
-                $oldStock = (int) ($deal->stock ?? 0);
-                $newStock = max(0, $oldStock - (int) $item->quantity);
-                $deal->update(['stock' => $newStock]);
-                \Illuminate\Support\Facades\Log::info("Curated Deal stock reduced for '{$deal->name}' (ID {$deal->id}): from {$oldStock} to {$newStock} (qty: {$item->quantity})");
-                continue;
-            }
+                if ($deal) {
+                    $lockedDeal = \App\Models\CuratedDeal::where('id', $deal->id)->lockForUpdate()->first();
+                    if ($lockedDeal) {
+                        $oldStock = (int) ($lockedDeal->stock ?? 0);
+                        $newStock = max(0, $oldStock - (int) $item->quantity);
+                        $lockedDeal->update(['stock' => $newStock]);
+                        \Illuminate\Support\Facades\Log::info("Curated Deal stock reduced for '{$lockedDeal->name}' (ID {$lockedDeal->id}): from {$oldStock} to {$newStock} (qty: {$item->quantity})");
+                    }
+                    continue;
+                }
 
-            // 2. Standard Product Variant stock reduction
-            $variant = $item->variant_id ? ProductVariant::find($item->variant_id) : null;
-            if (!$variant && $item->product_id) {
-                $product = Product::with('variants')->find($item->product_id);
-                if ($product) {
-                    $variant = $product->variants->first(fn($v) => (int) $v->stock > 0) ?? $product->variants->first();
+                // 2. Standard Product Variant stock reduction
+                $variantId = $item->variant_id;
+                if (!$variantId && $item->product_id) {
+                    $product = Product::with('variants')->find($item->product_id);
+                    if ($product) {
+                        $v = $product->variants->first(fn($v) => (int) $v->stock > 0) ?? $product->variants->first();
+                        $variantId = $v?->id;
+                    }
+                }
+
+                if ($variantId) {
+                    $lockedVariant = ProductVariant::where('id', $variantId)->lockForUpdate()->first();
+                    if ($lockedVariant) {
+                        $oldStock = (int) $lockedVariant->stock;
+                        $newStock = max(0, $oldStock - (int) $item->quantity);
+                        $lockedVariant->update(['stock' => $newStock]);
+                        \Illuminate\Support\Facades\Log::info("Variant stock reduced for variant ID {$lockedVariant->id}: from {$oldStock} to {$newStock} (qty: {$item->quantity})");
+                    }
                 }
             }
 
-            if ($variant) {
-                $oldStock = (int) $variant->stock;
-                $newStock = max(0, $oldStock - (int) $item->quantity);
-                $variant->update(['stock' => $newStock]);
-                \Illuminate\Support\Facades\Log::info("Variant stock reduced for variant ID {$variant->id}: from {$oldStock} to {$newStock} (qty: {$item->quantity})");
-            }
-        }
-
-        $metadata['stock_reduced_at'] = now()->toIso8601String();
-        $this->update(['payment_metadata' => $metadata]);
+            $metadata = (array) ($this->payment_metadata ?? []);
+            $metadata['stock_reduced_at'] = now()->toIso8601String();
+            $this->update(['payment_metadata' => $metadata]);
+        });
     }
 
     public function sendPaymentConfirmationEmails(): void
