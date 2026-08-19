@@ -37,7 +37,9 @@ class AdminOrderNotificationMail extends Mailable
 
         $itemsHtml = '';
         foreach ($order->items as $item) {
-            $brandName = $item->product && $item->product->brand ? $item->product->brand->name : 'Premium Essence';
+            $isCuratedDeal = $item->getCuratedDeal() !== null || empty($item->product_id);
+            $brandName = (!$isCuratedDeal && $item->product && $item->product->brand) ? $item->product->brand->name : null;
+
             $vDetail = $item->variant_details;
             if (!$vDetail && $item->variant) {
                 $v = $item->variant;
@@ -47,10 +49,14 @@ class AdminOrderNotificationMail extends Mailable
             $unitPrice = number_format((float) $item->price, 2);
             $lineTotal = number_format((float) $item->line_total, 2);
 
+            $itemTitleHtml = $brandName
+                ? "<strong>{$brandName}</strong> - {$item->product_name}{$variant}"
+                : "{$item->product_name}{$variant}";
+
             $itemsHtml .= "
             <tr>
                 <td style='padding: 10px 12px; border-bottom: 1px solid #EAEAEA; font-size: 13px;'>
-                    <strong>{$brandName}</strong> - {$item->product_name}{$variant}
+                    {$itemTitleHtml}
                 </td>
                 <td style='padding: 10px 12px; border-bottom: 1px solid #EAEAEA; font-size: 13px; text-align: center;'>
                     {$item->quantity}

@@ -34,7 +34,9 @@ class OrderInvoiceMail extends Mailable
 
         $itemsHtml = '';
         foreach ($order->items as $item) {
-            $brandName = $item->product && $item->product->brand ? $item->product->brand->name : 'Premium Essence';
+            $isCuratedDeal = $item->getCuratedDeal() !== null || empty($item->product_id);
+            $brandName = (!$isCuratedDeal && $item->product && $item->product->brand) ? $item->product->brand->name : null;
+
             $vDetail = $item->variant_details;
             if (!$vDetail && $item->variant) {
                 $v = $item->variant;
@@ -44,10 +46,14 @@ class OrderInvoiceMail extends Mailable
             $unitPrice = number_format((float) $item->price, 2);
             $lineTotal = number_format((float) $item->line_total, 2);
 
+            $itemTitleHtml = $brandName
+                ? "<strong style='color: #1B1315;'>{$brandName}</strong> - {$item->product_name}{$variant}"
+                : "{$item->product_name}{$variant}";
+
             $itemsHtml .= "
             <tr>
                 <td style='padding: 12px 15px; border-bottom: 1px solid #EAEAEA; font-size: 14px; color: #1B1315;'>
-                    <strong style='color: #1B1315;'>{$brandName}</strong> - {$item->product_name}{$variant}
+                    {$itemTitleHtml}
                 </td>
                 <td style='padding: 12px 15px; border-bottom: 1px solid #EAEAEA; font-size: 14px; color: #1B1315; text-align: center;'>
                     {$item->quantity}
@@ -93,7 +99,7 @@ class OrderInvoiceMail extends Mailable
                     <div style='margin-bottom: 12px;'>
                         <img src='{$logoUrl}' alt='Premium Essence Logo' style='max-height: 60px; width: auto; display: inline-block; vertical-align: middle;' />
                     </div>
-                    <h1 style='color: #D4AF37; margin: 0; font-family: Georgia, serif; font-size: 26px; letter-spacing: 2px; text-transform: uppercase;'>
+                    <h1 style='color: #EAEAEA; margin: 0; font-family: Georgia, serif; font-size: 26px; letter-spacing: 2px; text-transform: uppercase;'>
                         Premium Essence
                     </h1>
                     <p style='color: #EAEAEA; margin: 5px 0 0 0; font-size: 11px; letter-spacing: 3px; text-transform: uppercase;'>
