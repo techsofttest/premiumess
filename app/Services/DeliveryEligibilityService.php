@@ -62,6 +62,17 @@ class DeliveryEligibilityService
 
     public function calculateShipping(string $customerPostcode, float $subtotal): array
     {
+        $shippingSetting = \App\Models\ShippingSetting::getSettings();
+
+        // If global shipping calculation is disabled, return 0 shipping fee
+        if (!$shippingSetting->is_enabled) {
+            return [
+                'shipping_cost' => 0.0,
+                'free_shipping_threshold' => 0.0,
+                'is_free_shipping' => true,
+            ];
+        }
+
         $postcode = $this->normalizePostcode($customerPostcode);
         $deliveryPostcode = DeliveryPostcode::query()
             ->where('postcode', $postcode)
@@ -70,7 +81,9 @@ class DeliveryEligibilityService
 
         if ($deliveryPostcode) {
             $fee = (float) $deliveryPostcode->delivery_fee;
-            $threshold = $deliveryPostcode->free_shipping_threshold !== null ? (float) $deliveryPostcode->free_shipping_threshold : null;
+            $threshold = $deliveryPostcode->free_shipping_threshold !== null
+                ? (float) $deliveryPostcode->free_shipping_threshold
+                : (float) $shippingSetting->free_shipping_threshold;
             $isFree = $threshold !== null && $subtotal >= $threshold;
 
             return [
@@ -80,9 +93,9 @@ class DeliveryEligibilityService
             ];
         }
 
-        // Courier fallback configuration
-        $courierFee = (float) config('delivery.courier.fee', 0);
-        $courierThreshold = (float) config('delivery.courier.free_threshold', 50.00);
+        // Global default shipping fee & free shipping threshold configuration
+        $courierFee = (float) $shippingSetting->default_shipping_fee;
+        $courierThreshold = (float) $shippingSetting->free_shipping_threshold;
         $isFree = $subtotal >= $courierThreshold;
 
         return [

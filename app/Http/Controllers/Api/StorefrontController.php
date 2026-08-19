@@ -927,6 +927,13 @@ class StorefrontController extends Controller
             })
             ->values();
 
+        $shippingSetting = \App\Models\ShippingSetting::getSettings();
+        $shippingSettingsPayload = [
+            'default_shipping_fee' => (float) $shippingSetting->default_shipping_fee,
+            'free_shipping_threshold' => (float) $shippingSetting->free_shipping_threshold,
+            'is_enabled' => (bool) $shippingSetting->is_enabled,
+        ];
+
         return response()->json([
             'home_advertisement' => $homeAdvertisement ? [
                 'id' => $homeAdvertisement->id,
@@ -938,6 +945,7 @@ class StorefrontController extends Controller
             'banners' => $banners,
             'middle_banner' => $middleBanner,
             'why_choose_us' => $whyChooseUs,
+            'shipping_settings' => $shippingSettingsPayload,
             'collections' => $collections,
             'products' => $products->map(fn (Product $product) => $this->productPayload($product))->values(),
             'brands' => $brands,
