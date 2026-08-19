@@ -118,6 +118,22 @@ class StripePaymentService implements PaymentGatewayInterface
             ],
         ];
 
+        if ((float) $order->discount > 0) {
+            try {
+                $coupon = $this->stripe->coupons->create([
+                    'amount_off' => (int) round($order->discount * 100),
+                    'currency' => strtolower($this->currency),
+                    'duration' => 'once',
+                    'name' => $order->coupon_code ? "Coupon ({$order->coupon_code})" : 'Discount',
+                ]);
+                $sessionPayload['discounts'] = [
+                    ['coupon' => $coupon->id],
+                ];
+            } catch (\Exception $e) {
+                Log::warning('Stripe coupon creation warning: ' . $e->getMessage());
+            }
+        }
+
         if ($customerEmail = ($order->customer_email ?: $order->email)) {
             $sessionPayload['customer_email'] = $customerEmail;
         }

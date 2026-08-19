@@ -152,7 +152,7 @@ class CustomerDashboardController extends Controller
             return asset('storage/' . $cleanPath);
         }
 
-        return asset('logo/logo-black.png');
+        return asset('images/logo/brand-logo-nobg.png');
     }
 
     public function showOrder(Request $request, $id): JsonResponse
