@@ -76,6 +76,8 @@ class OrderInvoiceMail extends Mailable
             $order->shipping_country ?: $order->country,
         ]));
 
+        $logoUrl = asset('images/logo/brand-logo-nobg.png');
+
         return "
         <!DOCTYPE html>
         <html>
@@ -88,6 +90,9 @@ class OrderInvoiceMail extends Mailable
                 
                 <!-- Header -->
                 <div style='background-color: #1B1315; padding: 30px 40px; text-align: center;'>
+                    <div style='margin-bottom: 12px;'>
+                        <img src='{$logoUrl}' alt='Premium Essence Logo' style='max-height: 60px; width: auto; display: inline-block; vertical-align: middle;' />
+                    </div>
                     <h1 style='color: #D4AF37; margin: 0; font-family: Georgia, serif; font-size: 26px; letter-spacing: 2px; text-transform: uppercase;'>
                         Premium Essence
                     </h1>

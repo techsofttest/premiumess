@@ -76,6 +76,8 @@ class AdminOrderNotificationMail extends Mailable
             $order->shipping_country ?: $order->country,
         ]));
 
+        $logoUrl = asset('images/logo/brand-logo-nobg.png');
+
         return "
         <!DOCTYPE html>
         <html>
@@ -87,7 +89,10 @@ class AdminOrderNotificationMail extends Mailable
             <div style='max-width: 650px; margin: 30px auto; background-color: #FFFFFF; border: 1px solid #EAEAEA; border-radius: 4px; overflow: hidden;'>
                 
                 <div style='background-color: #1B1315; padding: 25px 35px; color: #FFFFFF;'>
-                    <span style='background-color: #D4AF37; color: #1B1315; font-size: 10px; font-weight: bold; padding: 4px 8px; text-transform: uppercase; letter-spacing: 1.5px; border-radius: 2px; float: right;'>NEW ORDER PAID</span>
+                    <div style='margin-bottom: 10px;'>
+                        <img src='{$logoUrl}' alt='Premium Essence Logo' style='max-height: 45px; width: auto; display: inline-block; vertical-align: middle;' />
+                    </div>
+                    <span style='background-color: #D4AF37; color: #1B1315; font-size: 10px; font-weight: bold; padding: 4px 8px; text-transform: uppercase; letter-spacing: 1.5px; border-radius: 2px; float: right;'>NEW ORDER</span>
                     <h2 style='margin: 0; font-family: Georgia, serif; font-size: 22px; color: #D4AF37;'>
                         Order #{$order->order_number}
                     </h2>
