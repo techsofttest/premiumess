@@ -79,6 +79,23 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ]);
+            ])
+            ->renderHook(
+                \Filament\View\PanelsRenderHook::BODY_END,
+                fn (): string => '<script>
+                    document.addEventListener("livewire:init", () => {
+                        if (typeof Livewire !== "undefined") {
+                            Livewire.hook("request", ({ fail }) => {
+                                fail(({ status, preventDefault }) => {
+                                    if (status === 419) {
+                                        preventDefault();
+                                        window.location.reload();
+                                    }
+                                });
+                            });
+                        }
+                    });
+                </script>'
+            );
     }
 }
