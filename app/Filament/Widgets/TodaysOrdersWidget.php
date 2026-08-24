@@ -33,7 +33,7 @@ class TodaysOrdersWidget extends BaseWidget
                     ->getStateUsing(fn ($record) => trim($record->first_name . ' ' . $record->last_name)),
                 Tables\Columns\TextColumn::make('grand_total')
                     ->label('Grand Total')
-                    ->money('AUD'),
+                    ->money('AED'),
             ])
             ->paginated(false);
     }

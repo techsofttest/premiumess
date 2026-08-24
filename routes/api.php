@@ -41,6 +41,7 @@ Route::get('/storefront/journals/{slug}', [JournalController::class, 'show']);
 Route::get('/storefront/cms/{slug}', [CmsController::class, 'show']);
 Route::get('/cms/{slug}', [CmsController::class, 'show']);
 Route::post('/storefront/contact', [StorefrontController::class, 'submitInquiry']);
+Route::get('/storefront/contact-settings', [StorefrontController::class, 'contactSettings']);
 
 Route::post('/delivery/check', [DeliveryEligibilityController::class, 'check']);
 Route::post('/track-order', [CheckoutController::class, 'trackOrder']);

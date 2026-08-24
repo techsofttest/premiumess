@@ -41,8 +41,8 @@ class DashboardStatsWidget extends BaseWidget
                 ->descriptionIcon($ordersDiff > 0 ? 'heroicon-m-arrow-trending-up' : ($ordersDiff < 0 ? 'heroicon-m-arrow-trending-down' : 'heroicon-m-minus'))
                 ->color($ordersDiff > 0 ? 'success' : ($ordersDiff < 0 ? 'danger' : 'gray')),
                 
-            Stat::make('Total Revenue Today', '$' . number_format($revenueToday, 2))
-                ->description($revenueDiff > 0 ? '$' . number_format($revenueDiff, 2) . ' increase' : '$' . number_format(abs($revenueDiff), 2) . ' decrease')
+            Stat::make('Total Revenue Today', 'AED ' . number_format($revenueToday, 2))
+                ->description($revenueDiff > 0 ? 'AED ' . number_format($revenueDiff, 2) . ' increase' : 'AED ' . number_format(abs($revenueDiff), 2) . ' decrease')
                 ->descriptionIcon($revenueDiff > 0 ? 'heroicon-m-arrow-trending-up' : ($revenueDiff < 0 ? 'heroicon-m-arrow-trending-down' : 'heroicon-m-minus'))
                 ->color($revenueDiff > 0 ? 'success' : ($revenueDiff < 0 ? 'danger' : 'gray')),
                 

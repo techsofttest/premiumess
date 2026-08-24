@@ -1274,4 +1274,38 @@ class StorefrontController extends Controller
             'meta_keywords' => $seo->meta_keywords,
         ]);
     }
+
+    public function contactSettings(): JsonResponse
+    {
+        $settings = \App\Models\ContactSetting::getSettings();
+
+        return response()->json([
+            'id' => $settings->id,
+            'company_name' => $settings->company_name,
+            'address' => $settings->address,
+            'phone' => $settings->phone,
+            'telephone' => $settings->telephone,
+            'whatsapp' => $settings->whatsapp,
+            'email' => $settings->email,
+            'support_email' => $settings->support_email,
+            'working_hours' => $settings->working_hours,
+            'google_maps_link' => $settings->google_maps_link,
+            'facebook_url' => $settings->facebook_url,
+            'instagram_url' => $settings->instagram_url,
+            'twitter_url' => $settings->twitter_url,
+            'linkedin_url' => $settings->linkedin_url,
+            'youtube_url' => $settings->youtube_url,
+            'tiktok_url' => $settings->tiktok_url,
+            'pinterest_url' => $settings->pinterest_url,
+            'social_links' => [
+                'facebook' => $settings->facebook_url,
+                'instagram' => $settings->instagram_url,
+                'twitter' => $settings->twitter_url,
+                'linkedin' => $settings->linkedin_url,
+                'youtube' => $settings->youtube_url,
+                'tiktok' => $settings->tiktok_url,
+                'pinterest' => $settings->pinterest_url,
+            ],
+        ]);
+    }
 }
