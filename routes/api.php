@@ -33,6 +33,7 @@ Route::post('/cart/validate-stock', [StorefrontController::class, 'validateCartS
 Route::get('/storefront/faqs', [StorefrontController::class, 'faqs']);
 Route::get('/storefront/announcements', [StorefrontController::class, 'announcements']);
 Route::get('/storefront/banners', [StorefrontController::class, 'banners']);
+Route::get('/storefront/seo', [StorefrontController::class, 'getSeo']);
 Route::get('/storefront/curated-deals', [StorefrontController::class, 'curatedDeals']);
 Route::get('/storefront/curated-deals/{slug}', [StorefrontController::class, 'curatedDeal']);
 Route::get('/storefront/journals', [JournalController::class, 'index']);

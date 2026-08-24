@@ -23,6 +23,7 @@ class Product extends Model
         'allows_courier',
         'meta_title',
         'meta_description',
+        'meta_keywords',
         'gender',
         'fragrance_family_id',
         'fragrance_concentration_id',

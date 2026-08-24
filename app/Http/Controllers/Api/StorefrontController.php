@@ -1244,4 +1244,34 @@ class StorefrontController extends Controller
 
         return response()->json($banners);
     }
+
+    public function getSeo(Request $request): JsonResponse
+    {
+        $page = trim((string) $request->query('page', $request->query('slug', 'home')));
+        $cleanPage = strtolower(ltrim($page, '/'));
+
+        $seo = \App\Models\Seo::query()
+            ->where('page_slug', $cleanPage)
+            ->orWhere('page_slug', $page)
+            ->orWhere('title', 'like', "%{$page}%")
+            ->first();
+
+        if (!$seo) {
+            return response()->json([
+                'title' => null,
+                'meta_title' => null,
+                'meta_description' => null,
+                'meta_keywords' => null,
+            ]);
+        }
+
+        return response()->json([
+            'id' => $seo->id,
+            'title' => $seo->title,
+            'page_slug' => $seo->page_slug,
+            'meta_title' => $seo->meta_title,
+            'meta_description' => $seo->meta_description,
+            'meta_keywords' => $seo->meta_keywords,
+        ]);
+    }
 }

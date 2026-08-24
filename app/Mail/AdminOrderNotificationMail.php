@@ -127,6 +127,21 @@ class AdminOrderNotificationMail extends Mailable
                             <td style='padding: 6px 0;'>{$shippingAddress}</td>
                         </tr>
                         <tr>
+                            <td style='padding: 6px 0; color: #666;'>Billing Address:</td>
+                            <td style='padding: 6px 0;'>" . ($order->billing_same_as_shipping || empty($order->billing_address_line_1)
+                                ? "Same as Delivery Address"
+                                : implode(', ', array_filter([
+                                      $order->billing_name,
+                                      $order->billing_address_line_1,
+                                      $order->billing_address_line_2,
+                                      $order->billing_city,
+                                      $order->billing_state,
+                                      $order->billing_postcode,
+                                      $order->billing_country
+                                  ])) . " (Tel: " . ($order->billing_phone ?: $order->phone) . ")"
+                            ) . "</td>
+                        </tr>
+                        <tr>
                             <td style='padding: 6px 0; color: #666;'>Delivery Type:</td>
                             <td style='padding: 6px 0; font-weight: bold; text-transform: uppercase;'>{$order->delivery_type}</td>
                         </tr>

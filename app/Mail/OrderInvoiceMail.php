@@ -187,15 +187,37 @@ class OrderInvoiceMail extends Mailable
                         </tr>
                     </table>
 
-                    <!-- Shipping Address Box -->
-                    <div style='margin-top: 30px; padding: 20px; background-color: #FAF7F8; border-left: 4px solid #D4AF37;'>
-                        <h4 style='margin: 0 0 8px 0; font-size: 14px; text-transform: uppercase; tracking: 1px; color: #1B1315;'>Shipping Address</h4>
-                        <p style='margin: 0; font-size: 13px; line-height: 1.5; color: #4A4A4A;'>
-                            <strong>{$customerName}</strong><br>
-                            {$shippingAddress}<br>
-                            Phone: " . ($order->shipping_phone ?: $order->customer_phone ?: $order->phone) . "
-                        </p>
-                    </div>
+                    <!-- Shipping & Billing Address Boxes -->
+                    <table style='width: 100%; border-collapse: collapse; margin-top: 30px;'>
+                        <tr>
+                            <td style='width: 48%; vertical-align: top; padding: 15px; background-color: #FAF7F8; border-left: 4px solid #D4AF37;'>
+                                <h4 style='margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #1B1315;'>Shipping Address</h4>
+                                <p style='margin: 0; font-size: 12px; line-height: 1.5; color: #4A4A4A;'>
+                                    <strong>{$customerName}</strong><br>
+                                    {$shippingAddress}<br>
+                                    Phone: " . ($order->shipping_phone ?: $order->customer_phone ?: $order->phone) . "
+                                </p>
+                            </td>
+                            <td style='width: 4%;'></td>
+                            <td style='width: 48%; vertical-align: top; padding: 15px; background-color: #FAF7F8; border-left: 4px solid #1B1315;'>
+                                <h4 style='margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #1B1315;'>Billing Address</h4>
+                                <p style='margin: 0; font-size: 12px; line-height: 1.5; color: #4A4A4A;'>
+                                    " . ($order->billing_same_as_shipping || empty($order->billing_address_line_1)
+                                        ? "<em>Same as Shipping Address</em>"
+                                        : "<strong>" . ($order->billing_name ?: $customerName) . "</strong><br>" . 
+                                          implode(', ', array_filter([
+                                              $order->billing_address_line_1,
+                                              $order->billing_address_line_2,
+                                              $order->billing_city,
+                                              $order->billing_state,
+                                              $order->billing_postcode,
+                                              $order->billing_country
+                                          ])) . "<br>Phone: " . ($order->billing_phone ?: $order->phone)
+                                    ) . "
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
 
                     <p style='font-size: 13px; line-height: 1.6; color: #666; margin-top: 35px;'>
                         You can track your order status anytime by visiting our website using your order number: <strong>#{$order->order_number}</strong>.

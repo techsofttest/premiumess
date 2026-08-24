@@ -97,6 +97,24 @@ class OrderForm
                         ]),
                     ]),
 
+                Section::make('Billing Snapshot')
+                    ->schema([
+                        \Filament\Forms\Components\Toggle::make('billing_same_as_shipping')
+                            ->label('Billing Address is same as Shipping Address')
+                            ->disabled($isStaff)
+                            ->columnSpanFull(),
+                        Grid::make(2)->schema([
+                            TextInput::make('billing_name')->label('Billing Contact Name')->disabled($isStaff),
+                            TextInput::make('billing_phone')->label('Billing Phone')->disabled($isStaff),
+                            TextInput::make('billing_address_line_1')->label('Billing Address Line 1')->disabled($isStaff),
+                            TextInput::make('billing_address_line_2')->label('Billing Address Line 2')->disabled($isStaff),
+                            TextInput::make('billing_city')->label('Billing City')->disabled($isStaff),
+                            TextInput::make('billing_state')->label('Billing State/Emirate')->disabled($isStaff),
+                            TextInput::make('billing_postcode')->label('Billing Postcode/P.O. Box')->disabled($isStaff),
+                            TextInput::make('billing_country')->label('Billing Country')->disabled($isStaff),
+                        ]),
+                    ]),
+
                 Section::make('Purchased Items & Variants')
                     ->schema([
                         \Filament\Forms\Components\Repeater::make('items')

@@ -294,10 +294,17 @@ class ProductForm
                 ->collapsed()
                 ->schema([
                     TextInput::make('meta_title')
-                        ->label('SEO Title'),
+                        ->label('SEO Title')
+                        ->placeholder('Custom SEO Meta Title'),
 
                     Textarea::make('meta_description')
                         ->label('SEO Description')
+                        ->placeholder('Custom SEO Meta Description')
+                        ->columnSpanFull(),
+
+                    TextInput::make('meta_keywords')
+                        ->label('SEO Keywords')
+                        ->placeholder('e.g. perfume, luxury fragrance, floral notes, UAE')
                         ->columnSpanFull(),
                 ])->columnSpanFull(),
         ]);

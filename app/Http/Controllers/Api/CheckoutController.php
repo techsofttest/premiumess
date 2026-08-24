@@ -195,6 +195,19 @@ class CheckoutController extends Controller
         $rawPaymentMethod = strtolower((string) $request->input('payment_method', 'stripe'));
         $isCod = in_array($rawPaymentMethod, ['cod', 'cash_on_delivery', 'cash']);
 
+        $billingSameAsShipping = filter_var($request->input('billing_same_as_shipping', true), FILTER_VALIDATE_BOOLEAN);
+        $billingDetailsInput = (array) $request->input('billing_details', []);
+        $billingDetails = ($billingSameAsShipping || empty($billingDetailsInput)) ? $deliveryDetails : $billingDetailsInput;
+
+        $billingName = $billingDetails['contact_name'] ?? $billingDetails['name'] ?? ($deliveryDetails['contact_name'] ?? $deliveryDetails['name'] ?? null);
+        $billingPhone = $billingDetails['phone'] ?? ($deliveryDetails['phone'] ?? '');
+        $billingAddress1 = $billingDetails['address_line_1'] ?? ($billingDetails['address'] ?? '');
+        $billingAddress2 = $billingDetails['address_line_2'] ?? null;
+        $billingCity = $billingDetails['city'] ?? 'Abu Dhabi';
+        $billingState = $billingDetails['state'] ?? 'Abu Dhabi';
+        $billingPostcode = $billingDetails['postcode'] ?? '00000';
+        $billingCountry = $billingDetails['country'] ?? 'United Arab Emirates';
+
         DB::beginTransaction();
         try {
             $order = Order::create([
@@ -204,17 +217,28 @@ class CheckoutController extends Controller
                 'customer_email' => $request->input('customer_email') ?? ($deliveryDetails['email'] ?? null),
                 'customer_phone' => $request->input('customer_phone') ?? ($deliveryDetails['phone'] ?? null),
                 
-                // billing details
-                'first_name' => explode(' ', ($deliveryDetails['contact_name'] ?? $deliveryDetails['name'] ?? 'Guest'), 2)[0] ?? 'Guest',
-                'last_name' => explode(' ', ($deliveryDetails['contact_name'] ?? $deliveryDetails['name'] ?? 'Guest'), 2)[1] ?? '',
+                // billing legacy details
+                'first_name' => explode(' ', ($billingName ?? 'Guest'), 2)[0] ?? 'Guest',
+                'last_name' => explode(' ', ($billingName ?? 'Guest'), 2)[1] ?? '',
                 'email' => $request->input('customer_email') ?? ($deliveryDetails['email'] ?? null),
-                'phone' => $request->input('customer_phone') ?? ($deliveryDetails['phone'] ?? ''),
-                'country' => $deliveryDetails['country'] ?? 'United Arab Emirates',
-                'address' => $deliveryDetails['address_line_1'] ?? ($deliveryDetails['address'] ?? ''),
-                'apartment' => $deliveryDetails['address_line_2'] ?? null,
-                'city' => $deliveryDetails['city'] ?? 'Abu Dhabi',
-                'state' => $deliveryDetails['state'] ?? 'Abu Dhabi',
-                'pin_code' => $deliveryDetails['postcode'] ?? '00000',
+                'phone' => $billingPhone,
+                'country' => $billingCountry,
+                'address' => $billingAddress1,
+                'apartment' => $billingAddress2,
+                'city' => $billingCity,
+                'state' => $billingState,
+                'pin_code' => $billingPostcode,
+
+                // explicit billing snapshot
+                'billing_same_as_shipping' => $billingSameAsShipping,
+                'billing_name' => $billingName,
+                'billing_phone' => $billingPhone,
+                'billing_address_line_1' => $billingAddress1,
+                'billing_address_line_2' => $billingAddress2,
+                'billing_city' => $billingCity,
+                'billing_state' => $billingState,
+                'billing_postcode' => $billingPostcode,
+                'billing_country' => $billingCountry,
 
                 // shipping snapshot
                 'shipping_name' => $deliveryDetails['contact_name'] ?? $deliveryDetails['name'] ?? null,

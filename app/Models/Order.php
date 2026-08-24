@@ -16,6 +16,8 @@ class Order extends Model
         'subtotal', 'shipping_cost', 'discount', 'coupon_code', 'grand_total', 'notes',
         'shipping_name', 'shipping_phone', 'shipping_address_line_1', 'shipping_address_line_2',
         'shipping_suburb', 'shipping_city', 'shipping_state', 'shipping_postcode', 'shipping_country',
+        'billing_same_as_shipping', 'billing_name', 'billing_phone', 'billing_address_line_1', 'billing_address_line_2',
+        'billing_city', 'billing_state', 'billing_postcode', 'billing_country',
         'shipping_latitude', 'shipping_longitude', 'shipping_google_place_id', 'delivery_type', 'warehouse_id',
         'delivery_slot_id', 'delivery_date', 'delivery_notes', 'delivery_distance_km',
         'payment_amount', 'payment_currency', 'stripe_payment_intent', 'stripe_charge_id', 'paid_at', 'payment_failure_reason', 'payment_metadata',
@@ -23,6 +25,7 @@ class Order extends Model
     ];
     
     protected $casts = [
+        'billing_same_as_shipping' => 'boolean',
         'billing_details' => 'array',
         'payment_metadata' => 'array',
         'paid_at' => 'datetime',
