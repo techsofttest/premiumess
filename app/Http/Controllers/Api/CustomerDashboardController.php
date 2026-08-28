@@ -242,7 +242,13 @@ class CustomerDashboardController extends Controller
 
         $query = Order::query()
             ->with(['items.product.brand', 'items.variant'])
-            ->where('customer_id', $user->id);
+            ->where(function ($q) use ($user) {
+                $q->where('customer_id', $user->id);
+                if (!empty($user->email)) {
+                    $q->orWhere('email', $user->email)
+                      ->orWhere('customer_email', $user->email);
+                }
+            });
 
         if ($paymentStatus = $request->string('payment_status')->toString()) {
             $query->where('payment_status', $paymentStatus);
