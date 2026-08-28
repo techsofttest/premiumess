@@ -74,6 +74,7 @@ class OrderInvoiceMail extends Mailable
         $grandTotalFormatted = number_format((float) $order->grand_total, 2);
         $orderDate = $order->created_at ? $order->created_at->format('F j, Y, g:i a') : date('F j, Y');
 
+        $shippingPhone = $order->shipping_phone ?: $order->customer_phone ?: $order->phone ?: 'N/A';
         $shippingAddress = implode(', ', array_filter([
             $order->shipping_address_line_1 ?: $order->address,
             $order->shipping_address_line_2 ?: $order->apartment,
@@ -81,6 +82,20 @@ class OrderInvoiceMail extends Mailable
             $order->shipping_state ?: $order->state,
             $order->shipping_country ?: $order->country,
         ]));
+
+        $billingName = $order->billing_name ?: $customerName;
+        $billingPhone = $order->billing_phone ?: $shippingPhone;
+        $billingAddress = implode(', ', array_filter([
+            $order->billing_address_line_1 ?: ($order->shipping_address_line_1 ?: $order->address),
+            $order->billing_address_line_2 ?: ($order->shipping_address_line_2 ?: $order->apartment),
+            $order->billing_city ?: ($order->shipping_city ?: $order->city),
+            $order->billing_state ?: ($order->shipping_state ?: $order->state),
+            $order->billing_postcode ?: $order->pin_code,
+            $order->billing_country ?: ($order->shipping_country ?: $order->country),
+        ]));
+        if (trim($billingAddress) === '') {
+            $billingAddress = $shippingAddress;
+        }
 
         $logoUrl = asset('images/logo/brand-logo-nobg.png');
 
@@ -195,25 +210,16 @@ class OrderInvoiceMail extends Mailable
                                 <p style='margin: 0; font-size: 12px; line-height: 1.5; color: #4A4A4A;'>
                                     <strong>{$customerName}</strong><br>
                                     {$shippingAddress}<br>
-                                    Phone: " . ($order->shipping_phone ?: $order->customer_phone ?: $order->phone) . "
+                                    Phone: {$shippingPhone}
                                 </p>
                             </td>
                             <td style='width: 4%;'></td>
                             <td style='width: 48%; vertical-align: top; padding: 15px; background-color: #FAF7F8; border-left: 4px solid #1B1315;'>
                                 <h4 style='margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #1B1315;'>Billing Address</h4>
                                 <p style='margin: 0; font-size: 12px; line-height: 1.5; color: #4A4A4A;'>
-                                    " . ($order->billing_same_as_shipping || empty($order->billing_address_line_1)
-                                        ? "<em>Same as Shipping Address</em>"
-                                        : "<strong>" . ($order->billing_name ?: $customerName) . "</strong><br>" . 
-                                          implode(', ', array_filter([
-                                              $order->billing_address_line_1,
-                                              $order->billing_address_line_2,
-                                              $order->billing_city,
-                                              $order->billing_state,
-                                              $order->billing_postcode,
-                                              $order->billing_country
-                                          ])) . "<br>Phone: " . ($order->billing_phone ?: $order->phone)
-                                    ) . "
+                                    <strong>{$billingName}</strong><br>
+                                    {$billingAddress}<br>
+                                    Phone: {$billingPhone}
                                 </p>
                             </td>
                         </tr>

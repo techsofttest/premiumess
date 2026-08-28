@@ -82,6 +82,20 @@ class AdminOrderNotificationMail extends Mailable
             $order->shipping_country ?: $order->country,
         ]));
 
+        $billingName = $order->billing_name ?: $customerName;
+        $billingPhone = $order->billing_phone ?: $customerPhone;
+        $billingAddress = implode(', ', array_filter([
+            $order->billing_address_line_1 ?: ($order->shipping_address_line_1 ?: $order->address),
+            $order->billing_address_line_2 ?: ($order->shipping_address_line_2 ?: $order->apartment),
+            $order->billing_city ?: ($order->shipping_city ?: $order->city),
+            $order->billing_state ?: ($order->shipping_state ?: $order->state),
+            $order->billing_postcode ?: $order->pin_code,
+            $order->billing_country ?: ($order->shipping_country ?: $order->country),
+        ]));
+        if (trim($billingAddress) === '') {
+            $billingAddress = $shippingAddress;
+        }
+
         $logoUrl = asset('images/logo/brand-logo-nobg.png');
 
         return "
@@ -128,18 +142,7 @@ class AdminOrderNotificationMail extends Mailable
                         </tr>
                         <tr>
                             <td style='padding: 6px 0; color: #666;'>Billing Address:</td>
-                            <td style='padding: 6px 0;'>" . ($order->billing_same_as_shipping || empty($order->billing_address_line_1)
-                                ? "Same as Delivery Address"
-                                : implode(', ', array_filter([
-                                      $order->billing_name,
-                                      $order->billing_address_line_1,
-                                      $order->billing_address_line_2,
-                                      $order->billing_city,
-                                      $order->billing_state,
-                                      $order->billing_postcode,
-                                      $order->billing_country
-                                  ])) . " (Tel: " . ($order->billing_phone ?: $order->phone) . ")"
-                            ) . "</td>
+                            <td style='padding: 6px 0;'><strong>{$billingName}</strong> &bull; {$billingAddress} (Tel: {$billingPhone})</td>
                         </tr>
                         <tr>
                             <td style='padding: 6px 0; color: #666;'>Delivery Type:</td>
