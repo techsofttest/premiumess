@@ -111,7 +111,7 @@ class OrderInvoiceMail extends Mailable
                 
                 <!-- Header -->
                 <div style='background-color: #1B1315; padding: 30px 40px; text-align: center;'>
-                    <div style='margin-bottom: 12px;'>
+                    <div style='margin-bottom: 12px; text-align: center;'>
                         <img src='{$logoUrl}' alt='Premium Essence Logo' style='max-height: 60px; width: auto; display: inline-block; vertical-align: middle;' />
                     </div>
                     <h1 style='color: #EAEAEA; margin: 0; font-family: Georgia, serif; font-size: 26px; letter-spacing: 2px; text-transform: uppercase;'>
