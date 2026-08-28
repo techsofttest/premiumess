@@ -119,6 +119,7 @@ class StorefrontController extends Controller
             'max_price' => $originalPrice ?? (float) ($product->max_price ?? $price),
             'is_featured' => (bool) $product->is_featured,
             'is_active' => (bool) $product->is_active,
+            'in_stock' => $product->variants->sum('stock') > 0,
             'rating' => $rating,
             'review_count' => $approvedReviews->count(),
             'variants' => $product->variants->map(fn ($variant) => $this->variantPayload($variant))->values(),
@@ -505,7 +506,6 @@ class StorefrontController extends Controller
             $products = Product::query()
                 ->with(['brand', 'category', 'variants', 'reviews', 'images'])
                 ->where('is_active', true)
-                ->whereHas('variants', fn ($q) => $q->where('stock', '>', 0))
                 ->where(function ($query) use ($search) {
                     $keywords = array_filter(explode(' ', $search));
                     foreach ($keywords as $keyword) {
