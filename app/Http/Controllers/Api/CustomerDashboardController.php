@@ -69,15 +69,16 @@ class CustomerDashboardController extends Controller
             return response()->json(['error' => 'Unauthenticated'], 401);
         }
 
-        // Adjust these status values based on how you set them in UI/admin.
-        $activeStatuses = ['processing', 'shipped', 'out_for_delivery', 'delivered'];
-        $activeStatuses = array_map(fn ($s) => strtolower($s), $activeStatuses);
-
+        // Active orders: all confirmed or in-progress orders that have not yet been delivered, cancelled, or refunded
         $totalOrders = Order::query()->where('customer_id', $user->id)->count();
 
         $activeOrders = Order::query()
             ->where('customer_id', $user->id)
-            ->whereIn('status', $activeStatuses)
+            ->whereNotIn('status', ['delivered', 'cancelled', 'refund_requested', 'refunded'])
+            ->where(function ($q) {
+                $q->where('payment_status', 'paid')
+                  ->orWhere('status', '!=', 'pending_payment');
+            })
             ->count();
 
         $savedAddressesCount = CustomerAddress::query()
@@ -94,7 +95,6 @@ class CustomerDashboardController extends Controller
             'total_orders' => $totalOrders,
             'active_orders' => $activeOrders,
             'saved_addresses_count' => $savedAddressesCount,
-
             'wishlist_count' => $user->wishlistItems()->count(),
             'reward_points' => 0,
 
@@ -102,7 +102,7 @@ class CustomerDashboardController extends Controller
                 'id' => $o->id,
                 'order_number' => $o->order_number,
                 'order_date' => optional($o->created_at)->toDateString(),
-                'status' => $o->status,
+                'status' => $o->status->value ?? $o->status,
                 'grand_total' => (float) $o->grand_total,
             ])->values(),
         ]);
@@ -176,7 +176,7 @@ class CustomerDashboardController extends Controller
                 $timeSlot = "{$slot->start_time} - {$slot->end_time}";
             }
         }
-
+ 
         return response()->json([
             'id' => $order->id,
             'order_number' => $order->order_number,
@@ -242,20 +242,22 @@ class CustomerDashboardController extends Controller
 
         $query = Order::query()
             ->with(['items.product.brand', 'items.variant'])
-            ->where(function ($q) use ($user) {
-                $q->where('customer_id', $user->id);
-                if (!empty($user->email)) {
-                    $q->orWhere('email', $user->email)
-                      ->orWhere('customer_email', $user->email);
-                }
-            });
+            ->where('customer_id', $user->id);
 
         if ($paymentStatus = $request->string('payment_status')->toString()) {
             $query->where('payment_status', $paymentStatus);
         }
 
         if ($status = $request->string('status')->toString()) {
-            $query->where('status', $status);
+            if ($status === 'active') {
+                $query->whereNotIn('status', ['delivered', 'cancelled', 'refund_requested', 'refunded'])
+                      ->where(function ($q) {
+                          $q->where('payment_status', 'paid')
+                            ->orWhere('status', '!=', 'pending_payment');
+                      });
+            } else {
+                $query->where('status', $status);
+            }
         }
 
         if ($search = $request->string('search')->toString()) {
@@ -288,4 +290,3 @@ class CustomerDashboardController extends Controller
         ])->values());
     }
 }
-
