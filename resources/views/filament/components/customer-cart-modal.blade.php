@@ -7,11 +7,10 @@
             <p class="mt-3 text-sm font-medium text-gray-600 dark:text-gray-400">This customer currently has no items in their cart.</p>
         </div>
     @else
-        ```html
+    
 <div style="
     width: 100%;
     overflow-x: auto;
-    background: #ffffff;
     border: 1px solid #e5e7eb;
     border-radius: 10px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.06);
@@ -29,7 +28,6 @@
         <!-- TABLE HEADER -->
         <thead>
             <tr style="
-                background: #f8fafc;
                 border-bottom: 2px solid #e5e7eb;
             ">
                 <th style="
@@ -357,7 +355,7 @@
     </table>
 
 </div>
-```
+
 
     @endif
 </div>
