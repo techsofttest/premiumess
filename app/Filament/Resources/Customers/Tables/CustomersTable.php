@@ -86,6 +86,20 @@ class CustomersTable
                     ->searchable()
                     ->wrap()
                     ->limit(50),
+                TextColumn::make('cart_summary')
+                    ->label('Cart Products')
+                    ->getStateUsing(function ($record) {
+                        $cart = $record->cart;
+                        if (!$cart || $cart->items->isEmpty()) {
+                            return 'Empty Cart';
+                        }
+                        $productCount = $cart->items->count();
+                        $quantityCount = $cart->items->sum('quantity');
+                        return "{$productCount} product(s) ({$quantityCount} pcs)";
+                    })
+                    ->badge()
+                    ->color(fn ($state) => $state === 'Empty Cart' ? 'gray' : 'warning'),
+
                 TextColumn::make('created_at')
                     ->label('Registered At')
                     ->dateTime()
@@ -96,6 +110,25 @@ class CustomersTable
             ])
             ->recordActions([
                 ViewAction::make(),
+                \Filament\Actions\Action::make('view_cart')
+                    ->label('View Cart')
+                    ->icon(\Filament\Support\Icons\Heroicon::OutlinedShoppingCart)
+                    ->color('warning')
+                    ->modalHeading(fn ($record) => "Cart Products for {$record->name}")
+                    ->modalWidth('5xl')
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Close')
+                    ->modalContent(function ($record) {
+                        $cart = $record->cart;
+                        if (!$cart) {
+                            $cart = \App\Models\CustomerCart::firstOrCreate(['customer_id' => $record->id]);
+                        }
+                        $items = $cart->items()->with(['product.brand', 'variant'])->get();
+                        return view('filament.components.customer-cart-modal', [
+                            'customer' => $record,
+                            'items' => $items,
+                        ]);
+                    }),
             ])
             ->toolbarActions([
                 // No bulk actions for view only
