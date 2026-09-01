@@ -32,9 +32,9 @@
                         <tr class="hover:bg-gray-50/60 dark:hover:bg-gray-800/50 transition-colors">
                             <td class="px-5 py-4 align-middle">
                                 <div class="flex items-center gap-3.5">
-                                    @if($product && $product->featured_image)
+                                  {{--  @if($product && $product->featured_image)
                                         <img src="{{ asset('storage/' . $product->featured_image) }}" alt="{{ $product->name }}" class="w-auto max-h-[100px] object-contain rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0 p-1" /> 
-                                    @else
+                                    @else --}}
                                         <div class="w-12 h-12 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-semibold text-gray-400 shrink-0">
                                             N/A
                                         </div>
