@@ -34,11 +34,11 @@
                                 <div class="flex items-center gap-3.5">
                                   {{--  @if($product && $product->featured_image)
                                         <img src="{{ asset('storage/' . $product->featured_image) }}" alt="{{ $product->name }}" class="w-auto max-h-[100px] object-contain rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0 p-1" /> 
-                                    @else --}}
+                                    @else <div> @endif --}}
                                         <div class="w-12 h-12 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-semibold text-gray-400 shrink-0">
                                             N/A
                                         </div>
-                                    @endif
+                                    
                                     <div class="min-w-0">
                                         <div class="font-medium text-gray-900 dark:text-white text-sm leading-snug">{{ $product->name ?? 'N/A' }}</div>
                                         <div class="text-xs text-gray-500 dark:text-gray-400 font-normal mt-0.5">{{ $product->brand->name ?? 'Premium Essence' }}</div>
