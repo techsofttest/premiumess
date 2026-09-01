@@ -7,89 +7,37 @@
             <p class="mt-3 text-sm font-medium text-gray-600 dark:text-gray-400">This customer currently has no items in their cart.</p>
         </div>
     @else
+
+
     
-<div style="
-    width: 100%;
-    overflow-x: auto;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-">
+<div class="w-full overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+    <table class="w-full min-w-[850px] border-collapse text-sm text-gray-700 dark:text-gray-200">
 
-    <table style="
-        width: 100%;
-        min-width: 850px;
-        border-collapse: collapse;
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: 14px;
-        color: #374151;
-    ">
-
-        <!-- TABLE HEADER -->
         <thead>
-            <tr style="
-                border-bottom: 2px solid #e5e7eb;
-            ">
-                <th style="
-                    padding: 14px 18px;
-                    text-align: left;
-                    font-size: 12px;
-                    font-weight: 700;
-                    color: #6b7280;
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                ">
+            <tr class="border-b-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                <th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     Product
                 </th>
 
-                <th style="
-                    padding: 14px 18px;
-                    text-align: left;
-                    font-size: 12px;
-                    font-weight: 700;
-                    color: #6b7280;
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                ">
+                <th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     Variant / Size
                 </th>
 
-                <th style="
-                    padding: 14px 18px;
-                    text-align: right;
-                    font-size: 12px;
-                    font-weight: 700;
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                ">
+                <th class="px-5 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     Unit Price
                 </th>
 
-                <th style="
-                    padding: 14px 18px;
-                    text-align: center;
-                    font-size: 12px;
-                    font-weight: 700;
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                ">
+                <th class="px-5 py-4 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     Qty
                 </th>
 
-                <th style="
-                    padding: 14px 18px;
-                    text-align: right;
-                    font-size: 12px;
-                    font-weight: 700;
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                ">
+                <th class="px-5 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     Line Total
                 </th>
             </tr>
         </thead>
 
-        <tbody>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
 
             @php $grandTotal = 0; @endphp
 
@@ -100,7 +48,6 @@
                     $product = $item->product;
 
                     $unitPrice = (float) ($variant->selling_price ?? 0);
-
                     $lineTotal = $unitPrice * $item->quantity;
 
                     $grandTotal += $lineTotal;
@@ -111,172 +58,79 @@
                     );
                 @endphp
 
-                <tr style="
-                    border-bottom: 1px solid #e5e7eb;
-                ">
+                <tr class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60">
 
-                    <!-- PRODUCT -->
-                    <td style="
-                        padding: 16px 18px;
-                        vertical-align: middle;
-                    ">
-                        <div style="
-                            display: flex;
-                            align-items: center;
-                            gap: 14px;
-                        ">
+                    {{-- PRODUCT --}}
+                    <td class="px-5 py-4 align-middle">
+                        <div class="flex items-center gap-4">
 
                             @if($product && $product->featured_image)
 
-                                <div style="
-                                    width: 64px;
-                                    height: 64px;
-                                    min-width: 64px;
-                                    border: 1px solid #e5e7eb;
-                                    border-radius: 8px;
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: center;
-                                    overflow: hidden;
-                                ">
+                                <div class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
                                     <img
                                         src="{{ asset('storage/' . $product->featured_image) }}"
                                         alt="{{ $product->name }}"
-                                        style="
-                                            max-width: 100%;
-                                            max-height: 100%;
-                                            width: auto;
-                                            height: auto;
-                                            object-fit: contain;
-                                            padding: 4px;
-                                            display: block;
-                                        "
+                                        class="max-h-full max-w-full object-contain p-1"
                                     >
                                 </div>
 
                             @else
 
-                                <div style="
-                                    width: 64px;
-                                    height: 64px;
-                                    min-width: 64px;
-                                    border: 1px solid #e5e7eb;
-                                    border-radius: 8px;
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: center;
-                                    font-size: 11px;
-                                    font-weight: 600;
-                                ">
+                                <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-xs font-semibold text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500">
                                     N/A
                                 </div>
 
                             @endif
 
-                            <div style="
-                                min-width: 0;
-                            ">
-
-                                <div style="
-                                    font-size: 14px;
-                                    font-weight: 600;
-                                    line-height: 1.4;
-                                    margin-bottom: 3px;
-                                ">
+                            <div class="min-w-0">
+                                <div class="truncate text-sm font-semibold text-gray-900 dark:text-white">
                                     {{ $product->name ?? 'N/A' }}
                                 </div>
 
-                                <div style="
-                                    font-size: 12px;
-                                    line-height: 1.4;
-                                ">
+                                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                     {{ $product->brand->name ?? 'Premium Essence' }}
                                 </div>
-
                             </div>
 
                         </div>
                     </td>
 
 
-                    <!-- VARIANT -->
-                    <td style="
-                        padding: 16px 18px;
-                        vertical-align: middle;
-                        white-space: nowrap;
-                    ">
-                        <span style="
-                            display: inline-block;
-                            padding: 5px 10px;
-                            border: 1px solid #e5e7eb;
-                            border-radius: 5px;
-                            font-size: 12px;
-                            font-weight: 600;
-                        ">
+                    {{-- VARIANT / SIZE --}}
+                    <td class="px-5 py-4 align-middle whitespace-nowrap">
+                        <span class="inline-flex items-center rounded-md border border-gray-200 bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
                             {{ $sizeLabel ?: 'Standard Edition' }}
                         </span>
                     </td>
 
 
-                    <!-- UNIT PRICE -->
-                    <td style="
-                        padding: 16px 18px;
-                        text-align: right;
-                        vertical-align: middle;
-                        white-space: nowrap;
-                        font-size: 14px;
-                    ">
-                        <span style="font-weight: 500;">
+                    {{-- UNIT PRICE --}}
+                    <td class="px-5 py-4 text-right align-middle whitespace-nowrap">
+                        <span class="font-medium text-gray-800 dark:text-gray-200">
                             {{ number_format($unitPrice, 2) }}
                         </span>
-                        <span style="
-                            font-size: 12px;
-                            margin-left: 3px;
-                        ">
+
+                        <span class="ml-1 text-xs text-gray-500 dark:text-gray-400">
                             AED
                         </span>
                     </td>
 
 
-                    <!-- QUANTITY -->
-                    <td style="
-                        padding: 16px 18px;
-                        text-align: center;
-                        vertical-align: middle;
-                        white-space: nowrap;
-                    ">
-                        <span style="
-                            display: inline-flex;
-                            align-items: center;
-                            justify-content: center;
-                            min-width: 30px;
-                            height: 28px;
-                            padding: 0 8px;
-                            border: 1px solid #d1d5db;
-                            border-radius: 5px;
-                            font-size: 13px;
-                            font-weight: 600;
-                        ">
+                    {{-- QUANTITY --}}
+                    <td class="px-5 py-4 text-center align-middle whitespace-nowrap">
+                        <span class="inline-flex min-w-[32px] items-center justify-center rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
                             {{ $item->quantity }}
                         </span>
                     </td>
 
 
-                    <!-- LINE TOTAL -->
-                    <td style="
-                        padding: 16px 18px;
-                        text-align: right;
-                        vertical-align: middle;
-                        white-space: nowrap;
-                        font-size: 14px;
-                        font-weight: 700;
-                    ">
-                        {{ number_format($lineTotal, 2) }}
-                        <span style="
-                            font-size: 12px;
-                            font-weight: 500;
-                            margin-left: 3px;
-                        ">
+                    {{-- LINE TOTAL --}}
+                    <td class="px-5 py-4 text-right align-middle whitespace-nowrap">
+                        <span class="font-semibold text-gray-900 dark:text-white">
+                            {{ number_format($lineTotal, 2) }}
+                        </span>
+
+                        <span class="ml-1 text-xs text-gray-500 dark:text-gray-400">
                             AED
                         </span>
                     </td>
@@ -288,53 +142,33 @@
         </tbody>
 
 
-        <!-- TOTAL -->
+        {{-- TOTAL --}}
         <tfoot>
-
-            <tr style="
-            ">
+            <tr class="border-t-2 border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
 
                 <td
                     colspan="4"
-                    style="
-                        padding: 18px;
-                        text-align: right;
-                        border-top: 2px solid #d1d5db;
-                        font-size: 12px;
-                        font-weight: 700;
-                        text-transform: uppercase;
-                        letter-spacing: 0.05em;
-                    "
+                    class="px-5 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400"
                 >
                     Total Cart Value
                 </td>
 
-                <td style="
-                    padding: 18px;
-                    text-align: right;
-                    border-top: 2px solid #d1d5db;
-                    white-space: nowrap;
-                    font-size: 17px;
-                    font-weight: 700;
-                ">
-                    {{ number_format($grandTotal, 2) }}
+                <td class="px-5 py-4 text-right whitespace-nowrap">
+                    <span class="text-lg font-bold text-gray-900 dark:text-white">
+                        {{ number_format($grandTotal, 2) }}
+                    </span>
 
-                    <span style="
-                        font-size: 13px;
-                        font-weight: 600;
-                        margin-left: 3px;
-                    ">
+                    <span class="ml-1 text-xs font-semibold text-gray-500 dark:text-gray-400">
                         AED
                     </span>
                 </td>
 
             </tr>
-
         </tfoot>
 
     </table>
-
 </div>
+
 
 
     @endif
