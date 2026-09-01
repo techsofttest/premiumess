@@ -59,7 +59,6 @@
                     text-align: right;
                     font-size: 12px;
                     font-weight: 700;
-                    color: #6b7280;
                     text-transform: uppercase;
                     letter-spacing: 0.05em;
                 ">
@@ -71,7 +70,6 @@
                     text-align: center;
                     font-size: 12px;
                     font-weight: 700;
-                    color: #6b7280;
                     text-transform: uppercase;
                     letter-spacing: 0.05em;
                 ">
@@ -83,7 +81,6 @@
                     text-align: right;
                     font-size: 12px;
                     font-weight: 700;
-                    color: #6b7280;
                     text-transform: uppercase;
                     letter-spacing: 0.05em;
                 ">
@@ -137,7 +134,6 @@
                                     min-width: 64px;
                                     border: 1px solid #e5e7eb;
                                     border-radius: 8px;
-                                    background: #ffffff;
                                     display: flex;
                                     align-items: center;
                                     justify-content: center;
@@ -166,11 +162,9 @@
                                     min-width: 64px;
                                     border: 1px solid #e5e7eb;
                                     border-radius: 8px;
-                                    background: #f3f4f6;
                                     display: flex;
                                     align-items: center;
                                     justify-content: center;
-                                    color: #9ca3af;
                                     font-size: 11px;
                                     font-weight: 600;
                                 ">
@@ -186,7 +180,6 @@
                                 <div style="
                                     font-size: 14px;
                                     font-weight: 600;
-                                    color: #111827;
                                     line-height: 1.4;
                                     margin-bottom: 3px;
                                 ">
@@ -195,7 +188,6 @@
 
                                 <div style="
                                     font-size: 12px;
-                                    color: #6b7280;
                                     line-height: 1.4;
                                 ">
                                     {{ $product->brand->name ?? 'Premium Essence' }}
@@ -216,12 +208,10 @@
                         <span style="
                             display: inline-block;
                             padding: 5px 10px;
-                            background: #f3f4f6;
                             border: 1px solid #e5e7eb;
                             border-radius: 5px;
                             font-size: 12px;
                             font-weight: 600;
-                            color: #4b5563;
                         ">
                             {{ $sizeLabel ?: 'Standard Edition' }}
                         </span>
@@ -235,14 +225,12 @@
                         vertical-align: middle;
                         white-space: nowrap;
                         font-size: 14px;
-                        color: #374151;
                     ">
                         <span style="font-weight: 500;">
                             {{ number_format($unitPrice, 2) }}
                         </span>
                         <span style="
                             font-size: 12px;
-                            color: #6b7280;
                             margin-left: 3px;
                         ">
                             AED
@@ -266,10 +254,8 @@
                             padding: 0 8px;
                             border: 1px solid #d1d5db;
                             border-radius: 5px;
-                            background: #ffffff;
                             font-size: 13px;
                             font-weight: 600;
-                            color: #374151;
                         ">
                             {{ $item->quantity }}
                         </span>
@@ -284,13 +270,11 @@
                         white-space: nowrap;
                         font-size: 14px;
                         font-weight: 700;
-                        color: #111827;
                     ">
                         {{ number_format($lineTotal, 2) }}
                         <span style="
                             font-size: 12px;
                             font-weight: 500;
-                            color: #6b7280;
                             margin-left: 3px;
                         ">
                             AED
@@ -308,7 +292,6 @@
         <tfoot>
 
             <tr style="
-                background: #f8fafc;
             ">
 
                 <td
@@ -319,7 +302,6 @@
                         border-top: 2px solid #d1d5db;
                         font-size: 12px;
                         font-weight: 700;
-                        color: #6b7280;
                         text-transform: uppercase;
                         letter-spacing: 0.05em;
                     "
@@ -334,14 +316,12 @@
                     white-space: nowrap;
                     font-size: 17px;
                     font-weight: 700;
-                    color: #b45309;
                 ">
                     {{ number_format($grandTotal, 2) }}
 
                     <span style="
                         font-size: 13px;
                         font-weight: 600;
-                        color: #92400e;
                         margin-left: 3px;
                     ">
                         AED
