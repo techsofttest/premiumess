@@ -18,54 +18,61 @@ class ProductCsvImporter
             throw new \Exception("Uploaded file could not be found.");
         }
 
-        $handle = fopen($filePath, 'r');
-        if (!$handle) {
-            throw new \Exception("Failed to open uploaded file.");
+        $rowsData = [];
+
+        // Try reading via PhpSpreadsheet (supports .xlsx, .xls, .csv, .ods, etc.)
+        if (class_exists(\PhpOffice\PhpSpreadsheet\IOFactory::class)) {
+            try {
+                $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+                $worksheet = $spreadsheet->getActiveSheet();
+                $rawRows = $worksheet->toArray(null, true, true, false);
+
+                foreach ($rawRows as $r) {
+                    // Skip completely empty rows
+                    $filtered = array_filter($r, fn($v) => $v !== null && trim((string)$v) !== '');
+                    if (!empty($filtered)) {
+                        $rowsData[] = $r;
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Fall back to native CSV parser if PhpSpreadsheet fails
+                $rowsData = self::parseCsvNative($filePath);
+            }
+        } else {
+            $rowsData = self::parseCsvNative($filePath);
         }
 
-        // Remove UTF-8 BOM if present
-        $bom = fread($handle, 3);
-        if ($bom !== "\xEF\xBB\xBF") {
-            rewind($handle);
+        if (empty($rowsData)) {
+            throw new \Exception("Import file appears to be empty or unreadable.");
         }
 
-        // Detect delimiter (comma vs semicolon)
-        $firstLine = fgets($handle);
-        rewind($handle);
-        if ($bom === "\xEF\xBB\xBF") {
-            fseek($handle, 3);
+        $headerRow = array_shift($rowsData);
+        if (!$headerRow) {
+            throw new \Exception("Import file header could not be found.");
         }
 
-        $delimiter = (substr_count($firstLine, ';') > substr_count($firstLine, ',')) ? ';' : ',';
-
-        $header = fgetcsv($handle, 0, $delimiter);
-        if (!$header) {
-            fclose($handle);
-            throw new \Exception("CSV file appears to be empty.");
-        }
-
-        // Normalize header keys (lowercase, trim)
+        // Normalize header keys (lowercase, trim, strip quotes & BOM)
         $header = array_map(function ($h) {
-            return strtolower(trim(str_replace(['"', "'", "\xEF\xBB\xBF"], '', $h)));
-        }, $header);
+            return strtolower(trim(str_replace(['"', "'", "\xEF\xBB\xBF"], '', (string)$h)));
+        }, $headerRow);
 
         $createdCount = 0;
         $updatedCount = 0;
         $errors = [];
         $rowNum = 1;
 
-        while (($row = fgetcsv($handle, 0, $delimiter)) !== false) {
+        foreach ($rowsData as $row) {
             $rowNum++;
 
             // Skip empty rows
-            if (empty(array_filter($row))) {
+            if (empty(array_filter($row, fn($v) => $v !== null && trim((string)$v) !== ''))) {
                 continue;
             }
 
             // Map row columns to header
             $data = [];
             foreach ($header as $index => $key) {
-                $data[$key] = isset($row[$index]) ? trim($row[$index]) : '';
+                $data[$key] = isset($row[$index]) ? trim((string)$row[$index]) : '';
             }
 
             $name = $data['name'] ?? $data['title'] ?? $data['product_name'] ?? '';
@@ -75,7 +82,10 @@ class ProductCsvImporter
             }
 
             try {
-                $sku = $data['sku'] ?? $data['product_sku'] ?? (strtoupper(Str::slug($name)) . '-' . Str::random(4));
+                $sku = $data['sku'] ?? $data['product_sku'] ?? '';
+                if (empty($sku)) {
+                    $sku = strtoupper(Str::slug($name)) . '-' . Str::random(4);
+                }
 
                 // 1. Resolve Brand
                 $brandId = null;
@@ -126,23 +136,23 @@ class ProductCsvImporter
                 $product->brand_id = $brandId;
                 $product->category_id = $categoryId;
                 $product->fragrance_concentration_id = $concentrationId;
-                $product->gender = $data['gender'] ?? 'Unisex';
-                $product->top_notes = $data['top_notes'] ?? null;
-                $product->middle_notes = $data['middle_notes'] ?? null;
-                $product->base_notes = $data['base_notes'] ?? null;
-                $product->key_features = $data['key_features'] ?? null;
-                $product->description = $data['description'] ?? null;
+                $product->gender = !empty($data['gender']) ? $data['gender'] : 'Unisex';
+                $product->top_notes = !empty($data['top_notes']) ? $data['top_notes'] : null;
+                $product->middle_notes = !empty($data['middle_notes']) ? $data['middle_notes'] : null;
+                $product->base_notes = !empty($data['base_notes']) ? $data['base_notes'] : null;
+                $product->key_features = !empty($data['key_features']) ? $data['key_features'] : null;
+                $product->description = !empty($data['description']) ? $data['description'] : null;
                 
                 if (!empty($data['featured_image'])) {
                     $product->featured_image = $data['featured_image'];
                 }
 
-                if (isset($data['is_featured'])) {
-                    $product->is_featured = in_array(strtolower($data['is_featured']), ['1', 'yes', 'true']);
+                if (isset($data['is_featured']) && $data['is_featured'] !== '') {
+                    $product->is_featured = in_array(strtolower((string)$data['is_featured']), ['1', 'yes', 'true']);
                 }
 
-                if (isset($data['is_active'])) {
-                    $product->is_active = in_array(strtolower($data['is_active']), ['1', 'yes', 'true']);
+                if (isset($data['is_active']) && $data['is_active'] !== '') {
+                    $product->is_active = in_array(strtolower((string)$data['is_active']), ['1', 'yes', 'true']);
                 }
 
                 $product->save();
@@ -166,12 +176,12 @@ class ProductCsvImporter
                 }
 
                 // 6. Create or Update Product Variant
-                $size = $data['size'] ?? $data['variant_size'] ?? '100';
-                $unit = $data['unit'] ?? $data['variant_unit'] ?? 'ml';
+                $size = !empty($data['size']) ? $data['size'] : (!empty($data['variant_size']) ? $data['variant_size'] : '100');
+                $unit = !empty($data['unit']) ? $data['unit'] : (!empty($data['variant_unit']) ? $data['variant_unit'] : 'ml');
                 $sellingPrice = (float) ($data['selling_price'] ?? $data['price'] ?? 0.0);
                 $buyingPrice = (float) ($data['buying_price'] ?? 0.0);
                 $stock = (int) ($data['stock'] ?? $data['quantity'] ?? 10);
-                $variantSku = $data['variant_sku'] ?? ($sku . '-' . $size . $unit);
+                $variantSku = !empty($data['variant_sku']) ? $data['variant_sku'] : ($sku . '-' . $size . $unit);
 
                 $variant = ProductVariant::where('product_id', $product->id)
                     ->where(function ($q) use ($size, $variantSku) {
@@ -202,13 +212,42 @@ class ProductCsvImporter
             }
         }
 
-        fclose($handle);
-
         return [
             'created' => $createdCount,
             'updated' => $updatedCount,
             'errors' => $errors,
         ];
+    }
+
+    private static function parseCsvNative(string $filePath): array
+    {
+        $handle = fopen($filePath, 'r');
+        if (!$handle) {
+            throw new \Exception("Failed to open uploaded file.");
+        }
+
+        // Remove UTF-8 BOM if present
+        $bom = fread($handle, 3);
+        if ($bom !== "\xEF\xBB\xBF") {
+            rewind($handle);
+        }
+
+        // Detect delimiter (comma vs semicolon)
+        $firstLine = fgets($handle);
+        rewind($handle);
+        if ($bom === "\xEF\xBB\xBF") {
+            fseek($handle, 3);
+        }
+
+        $delimiter = (substr_count($firstLine, ';') > substr_count($firstLine, ',')) ? ';' : ',';
+
+        $rows = [];
+        while (($row = fgetcsv($handle, 0, $delimiter)) !== false) {
+            $rows[] = $row;
+        }
+        fclose($handle);
+
+        return $rows;
     }
 
     public static function getSampleCsvContent(): string

@@ -46,7 +46,40 @@ class ListProducts extends ListRecords
                         ]),
                 ])
                 ->action(function (array $data) {
-                    $filePath = storage_path('app/public/' . $data['attachment']);
+                    $attachment = is_array($data['attachment']) ? reset($data['attachment']) : $data['attachment'];
+
+                    if (empty($attachment)) {
+                        \Filament\Notifications\Notification::make()
+                            ->title('Import Failed')
+                            ->body('No file was uploaded.')
+                            ->danger()
+                            ->send();
+                        return;
+                    }
+
+                    // Locate uploaded file across storage disks & locations
+                    $filePath = null;
+                    if (\Illuminate\Support\Facades\Storage::disk('public')->exists($attachment)) {
+                        $filePath = \Illuminate\Support\Facades\Storage::disk('public')->path($attachment);
+                    } elseif (file_exists(storage_path('app/public/' . $attachment))) {
+                        $filePath = storage_path('app/public/' . $attachment);
+                    } elseif (file_exists(public_path('storage/' . $attachment))) {
+                        $filePath = public_path('storage/' . $attachment);
+                    } elseif (file_exists(storage_path('app/' . $attachment))) {
+                        $filePath = storage_path('app/' . $attachment);
+                    } elseif (file_exists($attachment)) {
+                        $filePath = $attachment;
+                    }
+
+                    if (!$filePath || !file_exists($filePath)) {
+                        \Filament\Notifications\Notification::make()
+                            ->title('Import Failed')
+                            ->body("Uploaded file could not be found at location: {$attachment}")
+                            ->danger()
+                            ->send();
+                        return;
+                    }
+
                     try {
                         $result = \App\Services\ProductCsvImporter::import($filePath);
                         
@@ -56,7 +89,7 @@ class ListProducts extends ListRecords
 
                         $body = "Import Finished! Created: {$created} new products | Updated: {$updated} existing products.";
                         if ($errCount > 0) {
-                            $body .= " ({$errCount} row issues encountered)";
+                            $body .= " ({$errCount} row issues encountered: " . implode('; ', array_slice($result['errors'], 0, 3)) . ")";
                         }
 
                         \Filament\Notifications\Notification::make()
@@ -71,7 +104,7 @@ class ListProducts extends ListRecords
                             ->danger()
                             ->send();
                     } finally {
-                        if (file_exists($filePath)) {
+                        if ($filePath && file_exists($filePath)) {
                             @unlink($filePath);
                         }
                     }

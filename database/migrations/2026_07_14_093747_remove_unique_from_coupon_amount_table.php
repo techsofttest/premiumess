@@ -12,7 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('coupons', function (Blueprint $table) {
-            $table->dropUnique('tc_coupons_coupon_amount_unique');
+            try {
+                $table->dropUnique(['coupon_amount']);
+            } catch (\Throwable $e) {
+                // Index may not exist or already dropped
+            }
         });
     }
 

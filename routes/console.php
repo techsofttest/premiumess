@@ -1,11 +1,7 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
+    $this->comment('Stay hungry, stay foolish.');
 })->purpose('Display an inspiring quote');
-
-Schedule::command('deals:clear')->dailyAt('00:00');
