@@ -1202,7 +1202,11 @@ class StorefrontController extends Controller
         ]);
 
         try {
-            \Illuminate\Support\Facades\Mail::to('sales@premium-perfumes.com')
+            $adminEmail = 'sales@premium-perfumes.com';
+            $contactSetting = \App\Models\ContactSetting::first();
+            $recipients = array_values(array_filter(array_unique([$adminEmail, $contactSetting?->email])));
+
+            \Illuminate\Support\Facades\Mail::to($recipients)
                 ->send(new \App\Mail\InquiryNotificationMail($inquiry));
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('Inquiry email notification failed: ' . $e->getMessage());

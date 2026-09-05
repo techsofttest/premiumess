@@ -155,6 +155,41 @@ class CustomerDashboardController extends Controller
         return asset('images/logo/brand-logo-nobg.png');
     }
 
+    private function formatShippingAddress(Order $order): array
+    {
+        $name = $order->shipping_name ?: ($order->customer_name ?: trim(($order->first_name ?? '') . ' ' . ($order->last_name ?? '')));
+        $phone = $order->shipping_phone ?: ($order->customer_phone ?: $order->phone);
+        $street = trim(($order->shipping_address_line_1 ?: $order->address) . (($order->shipping_address_line_2 || $order->apartment) ? ', ' . ($order->shipping_address_line_2 ?: $order->apartment) : ''));
+
+        return [
+            'name' => $name ?: 'Customer',
+            'phone' => $phone ?: '',
+            'street' => $street ?: '',
+            'suburb' => $order->shipping_suburb ?: null,
+            'city' => $order->shipping_city ?: $order->city,
+            'state' => $order->shipping_state ?: $order->state,
+            'postcode' => $order->shipping_postcode ?: $order->pin_code,
+            'country' => $order->shipping_country ?: $order->country,
+        ];
+    }
+
+    private function formatBillingAddress(Order $order, array $shippingAddress): array
+    {
+        $billingStreet = trim(($order->billing_address_line_1 ?: '') . ($order->billing_address_line_2 ? ', ' . $order->billing_address_line_2 : ''));
+        $isSame = (bool) $order->billing_same_as_shipping;
+
+        return [
+            'name' => ($isSame || !$order->billing_name) ? $shippingAddress['name'] : $order->billing_name,
+            'phone' => ($isSame || !$order->billing_phone) ? $shippingAddress['phone'] : $order->billing_phone,
+            'street' => ($isSame || !$billingStreet) ? $shippingAddress['street'] : $billingStreet,
+            'suburb' => $isSame ? $shippingAddress['suburb'] : ($order->billing_suburb ?? $shippingAddress['suburb']),
+            'city' => ($isSame || !$order->billing_city) ? $shippingAddress['city'] : $order->billing_city,
+            'state' => ($isSame || !$order->billing_state) ? $shippingAddress['state'] : $order->billing_state,
+            'postcode' => ($isSame || !$order->billing_postcode) ? $shippingAddress['postcode'] : $order->billing_postcode,
+            'country' => ($isSame || !$order->billing_country) ? $shippingAddress['country'] : $order->billing_country,
+        ];
+    }
+
     public function showOrder(Request $request, $id): JsonResponse
     {
         $user = $this->getAuthenticatedCustomer($request);
@@ -176,14 +211,17 @@ class CustomerDashboardController extends Controller
                 $timeSlot = "{$slot->start_time} - {$slot->end_time}";
             }
         }
- 
+
+        $shippingAddress = $this->formatShippingAddress($order);
+        $billingAddress = $this->formatBillingAddress($order, $shippingAddress);
+
         return response()->json([
             'id' => $order->id,
             'order_number' => $order->order_number,
             'date' => optional($order->created_at)->format('F j, Y'),
             'status' => $order->status->value ?? $order->status,
             'payment_status' => $order->payment_status->value ?? $order->payment_status,
-            'payment_method' => $order->payment_method,
+            'payment_method' => $order->payment_method ?: 'N/A',
             'subtotal' => (float)$order->subtotal,
             'shipping_cost' => (float)$order->shipping_cost,
             'discount' => (float)$order->discount,
@@ -192,30 +230,14 @@ class CustomerDashboardController extends Controller
             'delivery_date' => $order->delivery_date,
             'time_slot' => $timeSlot,
             'billing_same_as_shipping' => (bool) $order->billing_same_as_shipping,
-            'shipping_address' => [
-                'name' => $order->shipping_name ?: $order->customer_name,
-                'phone' => $order->shipping_phone ?: $order->customer_phone ?: $order->phone,
-                'street' => trim(($order->shipping_address_line_1 ?: $order->address) . ' ' . ($order->shipping_address_line_2 ?: $order->apartment)),
-                'city' => $order->shipping_city ?: $order->city,
-                'state' => $order->shipping_state ?: $order->state,
-                'postcode' => $order->shipping_postcode ?: $order->pin_code,
-                'country' => $order->shipping_country ?: $order->country,
-            ],
-            'billing_address' => [
-                'name' => $order->billing_name ?: ($order->shipping_name ?: $order->customer_name),
-                'phone' => $order->billing_phone ?: ($order->shipping_phone ?: $order->phone),
-                'street' => trim(($order->billing_address_line_1 ?: $order->address) . ' ' . ($order->billing_address_line_2 ?: $order->apartment)),
-                'city' => $order->billing_city ?: $order->city,
-                'state' => $order->billing_state ?: $order->state,
-                'postcode' => $order->billing_postcode ?: $order->pin_code,
-                'country' => $order->billing_country ?: $order->country,
-            ],
+            'shipping_address' => $shippingAddress,
+            'billing_address' => $billingAddress,
             'address' => [
-                'name' => $order->customer_name,
+                'name' => $shippingAddress['name'],
                 'type' => 'Delivery Address',
-                'street' => trim(($order->shipping_address_line_1 ?: $order->address) . ' ' . ($order->shipping_address_line_2 ?: $order->apartment)),
-                'suburb' => trim(($order->shipping_city ?: $order->city) . ', ' . ($order->shipping_state ?: $order->state) . ' ' . ($order->shipping_postcode ?: $order->pin_code)),
-                'phone' => $order->shipping_phone ?: $order->phone,
+                'street' => $shippingAddress['street'],
+                'suburb' => trim(($shippingAddress['city'] ?? '') . ', ' . ($shippingAddress['state'] ?? '') . ' ' . ($shippingAddress['postcode'] ?? '')),
+                'phone' => $shippingAddress['phone'],
             ],
             'items' => $order->items->map(function ($item) {
                 $deal = $item->getCuratedDeal() ?? \App\Models\CuratedDeal::where('name', $item->product_name)->first();
@@ -269,24 +291,36 @@ class CustomerDashboardController extends Controller
 
         $orders = $query->latest()->get();
 
-        return response()->json($orders->map(fn (Order $order) => [
-            'id' => $order->id,
-            'order_number' => $order->order_number,
-            'date' => optional($order->created_at)->format('d M Y'),
-            'status' => $order->status->value ?? $order->status,
-            'payment_status' => $order->payment_status->value ?? $order->payment_status,
-            'grand_total' => (float) $order->grand_total,
-            'items_count' => $order->items->sum('quantity'),
-            'items' => $order->items->map(fn ($item) => [
-                'id' => $item->id,
-                'name' => $item->product_name,
-                'price' => (float) $item->price,
-                'quantity' => (int) $item->quantity,
-                'variant_details' => $this->resolveVariantDetails($item),
-                'line_total' => (float) $item->line_total,
-                'image' => $this->resolveItemImage($item),
-                'brand' => ($item->getCuratedDeal() || \App\Models\CuratedDeal::where('name', $item->product_name)->exists()) ? 'Exclusive Curation' : ($item->product && $item->product->brand ? $item->product->brand->name : 'Premium Essence'),
-            ]),
-        ])->values());
+        return response()->json($orders->map(function (Order $order) {
+            $shippingAddress = $this->formatShippingAddress($order);
+            $billingAddress = $this->formatBillingAddress($order, $shippingAddress);
+
+            return [
+                'id' => $order->id,
+                'order_number' => $order->order_number,
+                'date' => optional($order->created_at)->format('d M Y'),
+                'status' => $order->status->value ?? $order->status,
+                'payment_status' => $order->payment_status->value ?? $order->payment_status,
+                'payment_method' => $order->payment_method ?: 'N/A',
+                'subtotal' => (float) $order->subtotal,
+                'shipping_cost' => (float) $order->shipping_cost,
+                'discount' => (float) $order->discount,
+                'grand_total' => (float) $order->grand_total,
+                'items_count' => $order->items->sum('quantity'),
+                'billing_same_as_shipping' => (bool) $order->billing_same_as_shipping,
+                'shipping_address' => $shippingAddress,
+                'billing_address' => $billingAddress,
+                'items' => $order->items->map(fn ($item) => [
+                    'id' => $item->id,
+                    'name' => $item->product_name,
+                    'price' => (float) $item->price,
+                    'quantity' => (int) $item->quantity,
+                    'variant_details' => $this->resolveVariantDetails($item),
+                    'line_total' => (float) $item->line_total,
+                    'image' => $this->resolveItemImage($item),
+                    'brand' => ($item->getCuratedDeal() || \App\Models\CuratedDeal::where('name', $item->product_name)->exists()) ? 'Exclusive Curation' : ($item->product && $item->product->brand ? $item->product->brand->name : 'Premium Essence'),
+                ]),
+            ];
+        })->values());
     }
 }
